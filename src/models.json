@@ -1,0 +1,6 @@
+{
+	"model_paths": [
+		{"name": "Motion inbetweening", "path": "models/motion_inbetweening"},
+		{"name": "Linear interpolation", "path": "models/default_linear"}
+	]
+}

@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 
-from models.motion_inbetweening.motion_inbetween.model import transformer
+from motion_inbetween.model import transformer
 
 
 class ContextTransformer(nn.Module):

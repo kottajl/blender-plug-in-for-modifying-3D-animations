@@ -1,17 +1,11 @@
 import re
 import numpy as np
-import math
 
-from models.motion_inbetweening.motion_inbetween.data import utils_np
+from motion_inbetween.data import utils_np
 
 
 class Animation(object):
     def __init__(self, rotations, positions, offsets, parents, names):
-        #print("RRR", rotations)
-        #print("PPP", positions)
-        #print("OOO", offsets)
-        #print("AAA", parents)
-        #print("NNN", names)
         self.rotations = rotations
         self.positions = positions
         self.offsets = offsets
@@ -167,33 +161,5 @@ def load_bvh(bvh_path, start=None, end=None, order=None):
                 i += 1
 
         rotations = utils_np.euler_to_matrix9D(rotations, order=order)
-        #for r in rotations[0][:10]:
-        #    print(r)
 
         return Animation(rotations, positions, offsets, parents, names)
-
-
-def save_bvh(ref_file: str, positions_new, rotations_new, output_file):
-    with open(output_file, 'w') as out_handle:
-        with open(ref_file, 'r') as ref_handle:
-            for line in ref_handle.readlines():
-                if line.startswith('Frames:'):
-                    break
-                out_handle.write(line)
-        out_handle.write(f"Frames: {positions_new.shape[1]} \n")
-        out_handle.write("Frame Time: 0.04 \n")
-        for f in range(positions_new.shape[1]):
-            # pos
-            for d in range(3):
-                out_handle.write(f"{positions_new[0, f, 0, d]} ")
-
-            # rot
-            for j in range(rotations_new.shape[2]):
-                for d in range(3):
-                    val = rotations_new[0, f, j, 2 - d]
-                    if d == 0:
-                        val = 180 - val
-                    if d == 1:
-                        val *= -1
-                    out_handle.write(f"{val} ")
-            out_handle.write("\n")

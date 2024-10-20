@@ -6,11 +6,11 @@ import numpy as np
 import torch
 from torch.optim import Adam
 
-from models.motion_inbetweening.motion_inbetween import benchmark
-from models.motion_inbetweening.motion_inbetween.model import ContextTransformer
-from models.motion_inbetweening.motion_inbetween.data import utils_torch as data_utils
-from models.motion_inbetweening.motion_inbetween.train import rmi
-from models.motion_inbetweening.motion_inbetween.train import utils as train_utils
+from motion_inbetween import benchmark
+from motion_inbetween.model import ContextTransformer
+from motion_inbetween.data import utils_torch as data_utils
+from motion_inbetween.train import rmi
+from motion_inbetween.train import utils as train_utils
 
 
 def get_model_input(positions, rotations):

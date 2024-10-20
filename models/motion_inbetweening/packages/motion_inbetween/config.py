@@ -2,11 +2,12 @@ import os
 import re
 import json
 import platform
-import bpy
 
-file_path = bpy.data.filepath
-directory_path = os.path.dirname(file_path)
-config_root = directory_path + "/models/motion_inbetweening/configs"
+
+project_root = os.path.dirname(os.path.dirname(os.path.dirname(
+    os.path.abspath(__file__))))
+config_root = os.path.join(project_root, "configs")
+
 
 def load_config(path):
     with open(path) as fh:

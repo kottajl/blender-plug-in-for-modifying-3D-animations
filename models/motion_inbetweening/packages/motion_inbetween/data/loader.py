@@ -3,7 +3,7 @@ import torch
 from torch.utils.data import Dataset
 import numpy as np
 
-from models.motion_inbetweening.motion_inbetween.data import bvh, utils_np
+from motion_inbetween.data import bvh, utils_np
 
 
 class BvhDataSet(Dataset):
@@ -94,7 +94,7 @@ class BvhDataSet(Dataset):
 
         for i, frame in enumerate(self.frames):
             tmp_idx = curr_idx - \
-                      int(float(frame - self.window) / self.offset) - 1
+                int(float(frame - self.window) / self.offset) - 1
 
             if tmp_idx >= 0:
                 curr_idx = tmp_idx
@@ -120,91 +120,3 @@ class BvhDataSet(Dataset):
                 self.parents,
                 idx
             )
-
-
-class BvhDataSetSingle(Dataset):
-    def __init__(self, bvh_file, window=50, start_frame=0, device="cpu", dtype=torch.float32):
-        """
-        Bvh data set.
-
-        Args:
-            bvh_file (str): Bvh file path.
-            actors (list of str): List of actors to be included in the dataset.
-            window (int, optional): Length of window. Defaults to 50.
-            offset (int, optional): Offset of window. Defaults to 1.
-            start_frame (int, optional):
-                Override the start frame of each bvh file. Defaults to 0.
-            device (str, optional): Device. e.g. "cpu", "cuda:0".
-                Defaults to "cpu".
-            dtype: torch.float16, torch.float32, torch.float64 etc.
-        """
-        super(BvhDataSetSingle, self).__init__()
-        self.bvh_path = bvh_file
-        self.window = window
-        self.start_frame = start_frame
-        self.device = device
-        self.dtype = dtype
-
-        self.load_bvh_files()
-
-    def _to_tensor(self, array):
-        return torch.tensor(array, dtype=self.dtype, device=self.device)
-
-    def load_bvh_files(self):
-        self.bvh_files = [self.bvh_path]
-        self.positions = []
-        self.rotations = []
-        self.global_positions = []
-        self.global_rotations = []
-        self.foot_contact = []
-        self.frames = []
-        self.parents = []
-
-        if not self.bvh_files:
-            raise FileNotFoundError(
-                f"No such bvh file {self.bvh_path}!"
-            )
-
-        self.bvh_files.sort()
-        for bvh_path in self.bvh_files:
-            print("Processing file {}".format(bvh_path))
-            anim = bvh.load_bvh(bvh_path, start=self.start_frame)
-
-            # global joint rotation, position
-            gr, gp = utils_np.fk(anim.rotations, anim.positions, anim.parents)
-
-            # left, right foot contact
-            cl, cr = utils_np.extract_feet_contacts(
-                gp, [3, 4], [7, 8], vel_threshold=0.2)
-
-            self.positions.append(self._to_tensor(anim.positions))
-            self.rotations.append(self._to_tensor(anim.rotations))
-            self.global_positions.append(self._to_tensor(gp))
-            self.global_rotations.append(self._to_tensor(gr))
-            self.foot_contact.append(self._to_tensor(
-                np.concatenate([cl, cr], axis=-1)))
-            self.frames.append(anim.positions.shape[0])
-            self.parents = anim.parents
-
-    def __len__(self):
-        return 1
-
-    def __getitem__(self, idx):
-        start_idx = idx
-        end_idx = start_idx + self.window
-
-        positions = self.positions[0][start_idx: end_idx]
-        rotations = self.rotations[0][start_idx: end_idx]
-        global_positions = self.global_positions[0][start_idx: end_idx]
-        global_rotations = self.global_rotations[0][start_idx: end_idx]
-        foot_contact = self.foot_contact[0][start_idx: end_idx]
-
-        return (
-            positions,
-            rotations,
-            global_positions,
-            global_rotations,
-            foot_contact,
-            self.parents,
-            idx
-        )

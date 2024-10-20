@@ -12,20 +12,23 @@
 import sys
 import os
 import bpy
+import json
+import pathlib
 
-addon_path = bpy.data.filepath
-directory_path = os.path.dirname(addon_path)
-sys.path.insert(0, directory_path)
+directory_path = pathlib.Path(bpy.context.space_data.text.filepath).parent.resolve()
+modules_path = str(directory_path.parent.resolve())
+sys.path.append(modules_path)
 
 from interface.general_interface import GeneralInterface
-from models.motion_inbetweening.motion_inbetweening import MotionInbetweeningInterface
 
 from src.addon_functions import apply_transforms, get_anim_data
 from src.utils import copy_object, convert_array_3x3matrix_to_euler_zyx
 
 from bpy.utils import register_class, unregister_class
 from bpy.types import PropertyGroup
-from bpy.props import IntProperty, PointerProperty, BoolProperty 
+from bpy.props import IntProperty, PointerProperty, BoolProperty, EnumProperty
+
+sys.path.remove(modules_path)
 
 
 
@@ -35,7 +38,7 @@ def generate_anim(
     start_frame: int, 
     end_frame: int, 
     post_processing: bool, 
-    interface: GeneralInterface = MotionInbetweeningInterface()
+    interface: GeneralInterface
 ) -> set[str]:
     
     '''
@@ -98,10 +101,37 @@ bl_info = {
     "doc_url" : "",
     "category" : "",
 } 
+
+selected_model = None
+def ai_model_selected(self, context):
+    if "model" in sys.modules:
+        sys.modules.pop("model")
+    model_path = get_ai_models(self, context)[int(self.model)][2]
+    if not os.path.isabs(model_path):
+        model_path = pathlib.Path(modules_path) / model_path
+    sys.path.append(str(model_path))
+    from model import ModelInterface
+    global selected_model
+    selected_model = ModelInterface()
+    sys.path.remove(str(model_path))
+
+def get_ai_models(self, context):
+    models = []
+    i = 0
+    for model in json.load(open(directory_path / "models.json"))["model_paths"]:
+        models.append((str(i), model["name"], model["path"]))
+        i+=1
+    return models
                                                             
 class GenerationProperties(PropertyGroup):
     start_frame : IntProperty(name = "start frame", default = 0, min = 0)
     end_frame : IntProperty(name = "end frame", default = 0, min = 0)
+    model: EnumProperty(
+        name="AI Model",
+        description="Select AI model for interpolation",
+        items=get_ai_models,
+        update=ai_model_selected
+    )
     post_processing : BoolProperty(name = "post processing", default = False)
     
 # end class GenerationProperties
@@ -112,7 +142,7 @@ class GenerationButtonOperator(bpy.types.Operator):
 
     def execute(self, context):
         mt = bpy.context.scene.my_tool
-        return generate_anim(mt.start_frame, mt.end_frame, mt.post_processing)
+        return generate_anim(mt.start_frame, mt.end_frame, mt.post_processing, selected_model)
          
 # end class GenerateButtonOperator
        
@@ -131,6 +161,7 @@ class GenerationPanel(bpy.types.Panel):
         
         layout.prop(mytool, "start_frame")
         layout.prop(mytool, "end_frame")
+        layout.prop(mytool, "model")
         layout.prop(mytool, "post_processing")
         layout.separator()   
             

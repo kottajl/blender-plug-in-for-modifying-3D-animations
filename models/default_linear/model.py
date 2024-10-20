@@ -3,7 +3,7 @@ from interface.general_interface import GeneralInterface
 import numpy as np
 from scipy.spatial.transform import Rotation
 
-class DefaultLinearInterface(GeneralInterface):
+class ModelInterface(GeneralInterface):
 
     '''
     Interface for the Default Linear (simple code using linear interpolation).

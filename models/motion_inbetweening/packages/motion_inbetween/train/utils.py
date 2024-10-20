@@ -7,8 +7,8 @@ import torch
 from torch.utils.data import DataLoader
 from torch.optim.lr_scheduler import LambdaLR
 
-from models.motion_inbetweening.motion_inbetween.data import loader
-from models.motion_inbetweening.motion_inbetween.data import utils_torch as data_utils
+from motion_inbetween.data import loader
+from motion_inbetween.data import utils_torch as data_utils
 
 
 def load_checkpoint(config, model, optimizer=None, scheduler=None, suffix=""):
@@ -49,7 +49,7 @@ def save_checkpoint(config, model, epoch, iteration, optimizer,
     if n_ckp > 1:
         # keep previously saved checkpoint
         existing_ckps = glob.glob(checkpoint_path)
-        existing_ckps.extend(glob.glob(checkpoint_path + ".*"))
+        existing_ckps.extend(glob.glob(checkpoint_path+".*"))
 
         ckp_path_data = []
         for ckp_path in existing_ckps:
@@ -62,7 +62,7 @@ def save_checkpoint(config, model, epoch, iteration, optimizer,
                 try:
                     version_num = int(version_str)
                     new_path = ckp_path.rsplit(
-                        ".", 1)[0] + "." + str(version_num + 1)
+                        ".", 1)[0] + "." + str(version_num+1)
                 except ValueError:
                     import traceback
                     traceback.print_exc()
@@ -79,19 +79,6 @@ def save_checkpoint(config, model, epoch, iteration, optimizer,
 
     torch.save(checkpoint, checkpoint_path)
     print("Save checkpoint to {}.".format(checkpoint_path))
-
-
-def init_bvh_dataset_single(config, bvh_path, offset, device,
-                            shuffle=True, dtype=torch.float32):
-    dataset = loader.BvhDataSetSingle(bvh_path,
-                                      window=65,
-                                      start_frame=offset,
-                                      device=device,
-                                      dtype=dtype)
-    print("{} clips in dataset.".format(len(dataset)))
-    data_loader = DataLoader(dataset, batch_size=config["train"]["batch_size"],
-                             shuffle=shuffle)
-    return dataset, data_loader
 
 
 def init_bvh_dataset(config, dataset_name, device,
@@ -171,6 +158,7 @@ def cal_smooth_loss(new_global_positions, seq_slice, weights=None):
 
 def cal_p_loss(global_positions, new_global_positions, seq_slice,
                weights=None):
+
     # l1 loss
     delta = (global_positions[..., seq_slice, :, :] -
              new_global_positions[..., seq_slice, :, :])
@@ -189,8 +177,8 @@ def cal_f_loss(gpos_out, c_out, seq_slice):
     # sever gradient back propagation on c_out,
     # otherwise c_out will tend to be zero
     delta = (
-            c_out[..., seq_slice, :, None].detach() *
-            foot_vel[..., seq_slice, :, :]
+        c_out[..., seq_slice, :, None].detach() *
+        foot_vel[..., seq_slice, :, :]
     )
 
     # l1 loss
@@ -236,7 +224,7 @@ def anim_post_process(data, data_gt, seq_slice):
     end_idx = seq_slice.stop
 
     start_extrapolated = (
-            2 * data_gt[..., start_idx - 1, :] - data_gt[..., start_idx - 2, :])
+        2 * data_gt[..., start_idx - 1, :] - data_gt[..., start_idx - 2, :])
     start_value = data[..., start_idx, :]
 
     # Note: in order to make this work, we must provide one
@@ -244,14 +232,14 @@ def anim_post_process(data, data_gt, seq_slice):
     # extrapolate. (This can be viewed as providing velocity
     # at the target frame.)
     end_extrapolated = (
-            2 * data_gt[..., end_idx, :] - data_gt[..., end_idx + 1, :])
+        2 * data_gt[..., end_idx, :] - data_gt[..., end_idx + 1, :])
     end_value = data[..., end_idx - 1, :]
 
     delta = (start_extrapolated - start_value +
              end_extrapolated - end_value) / 2
 
     data[..., seq_slice, :] = (
-            data[..., seq_slice, :] + delta[..., None, :])
+        data[..., seq_slice, :] + delta[..., None, :])
 
     return data
 

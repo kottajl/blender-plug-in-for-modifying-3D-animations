@@ -8,12 +8,12 @@ import torch
 import torch.nn as nn
 from torch.optim import Adam
 
-from models.motion_inbetweening.motion_inbetween.model import ContextTransformer, DetailTransformer
-from models.motion_inbetweening.motion_inbetween.data import utils_torch as data_utils
-from models.motion_inbetweening.motion_inbetween.train import rmi
-from models.motion_inbetweening.motion_inbetween.train import utils as train_utils
-from models.motion_inbetweening.motion_inbetween.train import context_model as ctx_mdl
-from models.motion_inbetweening.motion_inbetween.benchmark import get_rmi_style_batch_loss
+from motion_inbetween.model import ContextTransformer, DetailTransformer
+from motion_inbetween.data import utils_torch as data_utils
+from motion_inbetween.train import rmi
+from motion_inbetween.train import utils as train_utils
+from motion_inbetween.train import context_model as ctx_mdl
+from motion_inbetween.benchmark import get_rmi_style_batch_loss
 
 
 def get_model_input(positions, rotations):

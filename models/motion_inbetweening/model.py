@@ -2,14 +2,28 @@ from interface.general_interface import GeneralInterface
 
 import numpy as np
 import torch
+from pathlib import Path
+import sys
 
-from models.motion_inbetweening.motion_inbetween.config import load_config_by_name
-from models.motion_inbetweening.motion_inbetween.data import utils_np
-from models.motion_inbetweening.motion_inbetween.data.utils_torch import to_start_centered_data, matrix9D_to_euler_angles, reverse_root_pos_rot_offset
-from models.motion_inbetweening.motion_inbetween.model import ContextTransformer, DetailTransformer
-from models.motion_inbetweening.motion_inbetween.train import context_model as ctx_mdl, detail_model as det_mdl, utils as train_utils, rmi
+packages_path = Path(__file__).parent.resolve() / "packages"
+sys.path.append(str(packages_path))
 
-class MotionInbetweeningInterface(GeneralInterface):
+from motion_inbetween.config import load_config_by_name
+from motion_inbetween.data import utils_np
+from motion_inbetween.data.utils_torch import to_start_centered_data, reverse_root_pos_rot_offset, matrix9D_to_quat_torch, remove_quat_discontinuities
+from motion_inbetween.model import ContextTransformer, DetailTransformer
+from motion_inbetween.train import context_model as ctx_mdl, detail_model as det_mdl, utils as train_utils, rmi
+from scipy.spatial.transform import Rotation
+
+sys.path.remove(str(packages_path))
+
+def matrix9D_to_euler_angles(mat):
+    quat_data = matrix9D_to_quat_torch(mat)
+    quat_data = remove_quat_discontinuities(quat_data)
+    rotations = Rotation.from_quat(quat_data.cpu().numpy().flatten().reshape((-1, 4)))
+    return rotations.as_euler('ZYX', degrees=True).reshape(1, -1, mat.shape[2], 3)
+    
+class ModelInterface(GeneralInterface):
 
     '''
     Interface for the MotionInbetweening models.

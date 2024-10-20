@@ -1,7 +1,6 @@
 import numpy as np
 import torch
 import torch.nn.functional as F
-from scipy.spatial.transform import Rotation
 
 
 def batch_vector_dot_torch(vec1, vec2):
@@ -566,11 +565,3 @@ def _apply_root_rot_offset(pos, rot, root_rot_offset, root_idx=0):
         root_rot_offset, pos[..., :, root_idx, :, None]).squeeze(-1)
 
     return pos, rot
-
-
-def matrix9D_to_euler_angles(mat):
-    quat_data = matrix9D_to_quat_torch(mat)
-    quat_data = remove_quat_discontinuities(quat_data)
-    rotations = Rotation.from_quat(quat_data.cpu().numpy().flatten().reshape((-1, 4)))
-    return rotations.as_euler('ZYX', degrees=True).reshape(1, -1, mat.shape[2], 3)
-
