@@ -59,7 +59,7 @@ def convert_array_3x3matrix_to_euler_zyx(mat: np.array) -> np.ndarray:
 
     return euler_angles
 
-# end function matrix9D_to_euler_angles_Z_Y_X
+# end function convert_array_3x3matrix_to_euler_zyx
 
 
 def copy_object(obj, context):
