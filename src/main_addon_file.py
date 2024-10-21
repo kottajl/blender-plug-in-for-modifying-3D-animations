@@ -15,6 +15,7 @@ import bpy
 import json
 import pathlib
 import torch
+import importlib
 
 directory_path = pathlib.Path(bpy.context.space_data.text.filepath).parent.resolve()
 modules_path = str(directory_path.parent.resolve())
@@ -28,6 +29,7 @@ from src.utils import copy_object, convert_array_3x3matrix_to_euler_zyx
 from bpy.utils import register_class, unregister_class
 from bpy.types import PropertyGroup
 from bpy.props import IntProperty, PointerProperty, BoolProperty, EnumProperty
+import bpy_extras
 
 sys.path.remove(modules_path)
 
@@ -107,25 +109,29 @@ bl_info = {
 selected_model : GeneralInterface = None
 selected_device : str = None
 
-def select_ai_model(self, context):
-    if "model" in sys.modules:
-        sys.modules.pop("model")
-    model_path = get_ai_models(self, context)[int(self.model)][2]
-    if not os.path.isabs(model_path):
-        model_path = pathlib.Path(modules_path) / model_path
-    sys.path.append(str(model_path))
-    from model import ModelInterface
+def select_ai_model(index):
+    model_path = pathlib.Path(get_ai_models()[index][2])
+    model = importlib.import_module(str(model_path.name))
     global selected_model
-    selected_model = ModelInterface()
-    sys.path.remove(str(model_path))
+    selected_model = model.ModelInterface()
+
+def select_ai_model_dropdown(self, context):
+    select_ai_model(int(self.model))
 
 # end function select_ai_model
 
-def get_ai_models(self, context):
+def get_ai_models_dropdown(self, context):
+    return get_ai_models()
+
+def get_ai_models():
     models = []
     i = 0
     for model in json.load(open(directory_path / "model_paths.json"))["model_paths"]:
         models.append((str(i), model["name"], model["path"]))
+        model_path = pathlib.Path(model["path"])
+        if not os.path.isabs(model_path):
+            model_path = pathlib.Path(modules_path) / model_path
+        sys.path.append(str(model_path.parent.resolve()))
         i += 1
     return models
 
@@ -163,8 +169,8 @@ class GenerationProperties(PropertyGroup):
     model: EnumProperty(
         name="model",
         description="Select model for generating frames",
-        items=get_ai_models,
-        update=select_ai_model
+        items=get_ai_models_dropdown,
+        update=select_ai_model_dropdown
     )
     device: EnumProperty(
         name="device",
@@ -185,6 +191,21 @@ class GenerationButtonOperator(bpy.types.Operator):
         return generate_anim(mt.start_frame, mt.end_frame, mt.post_processing, selected_model, selected_device)
          
 # end class GenerateButtonOperator
+
+class AddModelButtonOperator(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
+    bl_idname = "plugin.add_model_button"
+    bl_label = "plugin"
+
+    def execute(self, context):
+        with open(directory_path / "model_paths.json", "r") as file:
+            models = json.load(file)
+        path = pathlib.Path(self.filepath)
+        models["model_paths"].append({"name": str(path.stem), "path": str(path.parent.resolve() / path.stem)})
+        with open(directory_path / "model_paths.json", "w") as file:
+            file.write(json.dumps(models, indent=4))
+        return {"FINISHED"}
+         
+# end class GenerateButtonOperator
        
 class GenerationPanel(bpy.types.Panel):
     bl_label = "Plugin"
@@ -198,20 +219,21 @@ class GenerationPanel(bpy.types.Panel):
         layout = self.layout
         scene = context.scene  
         mytool = scene.my_tool
+        row = layout.row()
 
         layout.prop(mytool, "start_frame")
         layout.prop(mytool, "end_frame")
         layout.prop(mytool, "model")
+        row.operator(AddModelButtonOperator.bl_idname, text="Add model", icon='COLORSET_01_VEC')
         layout.prop(mytool, "device")
         layout.prop(mytool, "post_processing")
         layout.separator()   
             
-        row = layout.row()
         row.operator(GenerationButtonOperator.bl_idname, text="Generate animation", icon='COLORSET_01_VEC')
         
 # end class GeneratePanel
 
-generation_window_classes = [GenerationButtonOperator, GenerationPanel, GenerationProperties]
+generation_window_classes = [AddModelButtonOperator, GenerationButtonOperator, GenerationPanel, GenerationProperties]
 
 def register():
     for x in generation_window_classes: register_class(x)  
@@ -227,17 +249,7 @@ def unregister():
     
 if __name__ == "__main__":   
     register()    
-
-    if "model" in sys.modules:
-            sys.modules.pop("model")
-    model_path = get_ai_models(None, None)[0][2]
-    if not os.path.isabs(model_path):
-        model_path = pathlib.Path(modules_path) / model_path
-    sys.path.append(str(model_path))
-    from model import ModelInterface
-    selected_model = ModelInterface()
-    sys.path.remove(str(model_path))
-            
+    select_ai_model(0)
     selected_device = "cpu"   
     
 # end main

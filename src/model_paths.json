@@ -1,6 +1,12 @@
 {
-	"model_paths": [
-		{"name": "Motion inbetweening", "path": "models/motion_inbetweening"},
-		{"name": "Linear interpolation", "path": "models/linear_interpolation"}
-	]
+    "model_paths": [
+        {
+            "name": "Motion inbetweening",
+            "path": "models/motion_inbetweening/motion_inbetweening"
+        },
+        {
+            "name": "Linear interpolation",
+            "path": "models/linear_interpolation/linear_interpolation"
+        }
+    ]
 }
