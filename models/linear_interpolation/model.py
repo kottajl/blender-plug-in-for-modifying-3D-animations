@@ -6,7 +6,7 @@ from scipy.spatial.transform import Rotation
 class ModelInterface(GeneralInterface):
 
     '''
-    Interface for the Default Linear (simple code using linear interpolation).
+    Simple linear interpolation (without AI).
     '''
 
     def check_frames_range(self, start_frame, end_frame, scene_start_frame, scene_end_frame) -> bool:
@@ -15,12 +15,12 @@ class ModelInterface(GeneralInterface):
     # end function check_frames_range
 
 
-    def infer_anim(self, anim_data, start_frame, end_frame, post_processing):  
+    def infer_anim(self, anim_data, start_frame, end_frame, post_processing, device):  
                 
         def convert_array_3x3matrix_to_euler_zyx(mat: np.array) -> np.ndarray: 
     
             '''
-            Convert a array of 3x3 rotation matrix to array of Euler angles ZYX.
+            Convert an array of 3x3 rotation matrix to array of Euler angles ZYX.
             '''
 
             assert mat.shape[2:4] == (3, 3), "Shape of array must be (X, Y, 3, 3)!"
@@ -106,4 +106,4 @@ class ModelInterface(GeneralInterface):
             
     # end function infer_anim
 
-# DefaultLinearInterface
+# end class ModelInterface

@@ -1,19 +1,20 @@
 from interface.general_interface import GeneralInterface
 
-import numpy as np
-import torch
-from pathlib import Path
 import sys
+from pathlib import Path
 
 packages_path = Path(__file__).parent.resolve() / "packages"
 sys.path.append(str(packages_path))
+
+import numpy as np
+import torch
+from scipy.spatial.transform import Rotation
 
 from motion_inbetween.config import load_config_by_name
 from motion_inbetween.data import utils_np
 from motion_inbetween.data.utils_torch import to_start_centered_data, reverse_root_pos_rot_offset, matrix9D_to_quat_torch, remove_quat_discontinuities
 from motion_inbetween.model import ContextTransformer, DetailTransformer
 from motion_inbetween.train import context_model as ctx_mdl, detail_model as det_mdl, utils as train_utils, rmi
-from scipy.spatial.transform import Rotation
 
 sys.path.remove(str(packages_path))
 
@@ -22,20 +23,22 @@ def matrix9D_to_euler_angles(mat):
     quat_data = remove_quat_discontinuities(quat_data)
     rotations = Rotation.from_quat(quat_data.cpu().numpy().flatten().reshape((-1, 4)))
     return rotations.as_euler('ZYX', degrees=True).reshape(1, -1, mat.shape[2], 3)
-    
+
+# end function matrix9D_to_euler_angles
+  
 class ModelInterface(GeneralInterface):
 
     '''
-    Interface for the MotionInbetweening models.
+    Implementation of Motion Inbetweening model.
     '''
 
     class BlenderDataSetSingle(torch.utils.data.Dataset):
         
         '''
-        Dataset for the MotionInbetweening models.
+        Dataset for the Motion Inbetweening model.
         '''
 
-        def __init__(self, anim, window, start_frame, device="cpu", dtype=torch.float32):
+        def __init__(self, anim, window, start_frame, device, dtype=torch.float32):
             super().__init__()
             self.window = window
             self.start_frame = start_frame
@@ -101,18 +104,13 @@ class ModelInterface(GeneralInterface):
     # end function check_frames_range
 
 
-    def infer_anim(self, anim_data, start_frame, end_frame, post_processing):
+    def infer_anim(self, anim_data, start_frame, end_frame, post_processing, device):
         offset = start_frame - 10
         trans = end_frame - start_frame + 1
         
         # Model specific - loading config from a JSON file
         det_config = load_config_by_name("lafan1_detail_model")
         ctx_config = load_config_by_name("lafan1_context_model")
-
-        # IMPORTANT:  Device to store most of the data (Nvidia GPU or CPU or mps on ARM64)
-        if torch.cuda.is_available(): device = torch.device("cuda:0")
-        elif torch.backends.mps.is_available(): device = torch.device("mps")
-        else: device = torch.device("cpu")
 
         # IMPORTANT: Empty model initialization (no parameters loaded, no GPU/CPU memory used by model)
         detail_model = DetailTransformer(det_config["model"]).to(device)
@@ -214,4 +212,4 @@ class ModelInterface(GeneralInterface):
     
     # end function infer_anim
 
-# MotionInbetweenInterface
+# end class ModelInterface

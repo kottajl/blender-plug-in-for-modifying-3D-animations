@@ -5,7 +5,7 @@ from scipy.spatial.transform import Rotation
 def convert_array_3x3matrix_to_euler_zyx(mat: np.array) -> np.ndarray: 
   
     '''
-    Convert a array of 3x3 rotation matrix to array of Euler angles ZYX.
+    Convert an array of 3x3 rotation matrix to array of Euler angles ZYX.
     '''
 
     assert mat.shape[2:4] == (3, 3), "Shape of array must be (X, Y, 3, 3)!"

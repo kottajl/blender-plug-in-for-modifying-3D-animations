@@ -14,6 +14,7 @@ import os
 import bpy
 import json
 import pathlib
+import torch
 
 directory_path = pathlib.Path(bpy.context.space_data.text.filepath).parent.resolve()
 modules_path = str(directory_path.parent.resolve())
@@ -38,7 +39,8 @@ def generate_anim(
     start_frame: int, 
     end_frame: int, 
     post_processing: bool, 
-    interface: GeneralInterface
+    interface: GeneralInterface,
+    device: str
 ) -> set[str]:
     
     '''
@@ -64,7 +66,7 @@ def generate_anim(
     anim = get_anim_data(obj)
     
     # infer results from ai model - function from interface
-    inferred_pos, inferred_rot = interface.infer_anim(anim, start_frame, end_frame, post_processing)
+    inferred_pos, inferred_rot = interface.infer_anim(anim, start_frame, end_frame, post_processing, device)
     
     # copy object
     new_obj = copy_object(obj, context)
@@ -102,8 +104,10 @@ bl_info = {
     "category" : "",
 } 
 
-selected_model = None
-def ai_model_selected(self, context):
+selected_model : GeneralInterface = None
+selected_device : str = None
+
+def select_ai_model(self, context):
     if "model" in sys.modules:
         sys.modules.pop("model")
     model_path = get_ai_models(self, context)[int(self.model)][2]
@@ -115,22 +119,58 @@ def ai_model_selected(self, context):
     selected_model = ModelInterface()
     sys.path.remove(str(model_path))
 
+# end function select_ai_model
+
 def get_ai_models(self, context):
     models = []
     i = 0
-    for model in json.load(open(directory_path / "models.json"))["model_paths"]:
+    for model in json.load(open(directory_path / "model_paths.json"))["model_paths"]:
         models.append((str(i), model["name"], model["path"]))
-        i+=1
+        i += 1
     return models
-                                                            
+
+# end function get_ai_models
+
+def get_device_list(self, context):
+    devices = [("0", "cpu", "cpu")] 
+    device_i = 1
+
+    # Cuda for NVIDIA GPU
+    if torch.cuda.is_available():
+        num_gpus = torch.cuda.device_count()
+        for i in range(num_gpus):
+            devices.append((str(device_i), f"cuda:{i}", f"cuda:{i}"))
+            device_i += 1
+
+    # MPS for ARM GPU
+    if torch.backends.mps.is_available() and torch.backends.mps.is_built():
+        devices.append((str(device_i), "mps", "mps"))
+        device_i += 1
+
+    return devices
+
+# end function get_device_list
+
+def select_device(self, context):
+    global selected_device
+    selected_device = get_device_list(self, context)[int(self.device)][2]
+
+# end function select_device
+                                                        
 class GenerationProperties(PropertyGroup):
     start_frame : IntProperty(name = "start frame", default = 0, min = 0)
     end_frame : IntProperty(name = "end frame", default = 0, min = 0)
     model: EnumProperty(
-        name="AI Model",
-        description="Select AI model for interpolation",
+        name="model",
+        description="Select model for generating frames",
         items=get_ai_models,
-        update=ai_model_selected
+        update=select_ai_model
+    )
+    device: EnumProperty(
+        name="device",
+        description="Select device to compute on",
+        items=get_device_list,
+        update=select_device
     )
     post_processing : BoolProperty(name = "post processing", default = False)
     
@@ -142,7 +182,7 @@ class GenerationButtonOperator(bpy.types.Operator):
 
     def execute(self, context):
         mt = bpy.context.scene.my_tool
-        return generate_anim(mt.start_frame, mt.end_frame, mt.post_processing, selected_model)
+        return generate_anim(mt.start_frame, mt.end_frame, mt.post_processing, selected_model, selected_device)
          
 # end class GenerateButtonOperator
        
@@ -158,10 +198,11 @@ class GenerationPanel(bpy.types.Panel):
         layout = self.layout
         scene = context.scene  
         mytool = scene.my_tool
-        
+
         layout.prop(mytool, "start_frame")
         layout.prop(mytool, "end_frame")
         layout.prop(mytool, "model")
+        layout.prop(mytool, "device")
         layout.prop(mytool, "post_processing")
         layout.separator()   
             
@@ -184,7 +225,19 @@ def unregister():
     
 # end function unregister
     
-if __name__ == "__main__":
+if __name__ == "__main__":   
     register()    
 
-# generate_anim(70, 140, False)
+    if "model" in sys.modules:
+            sys.modules.pop("model")
+    model_path = get_ai_models(None, None)[0][2]
+    if not os.path.isabs(model_path):
+        model_path = pathlib.Path(modules_path) / model_path
+    sys.path.append(str(model_path))
+    from model import ModelInterface
+    selected_model = ModelInterface()
+    sys.path.remove(str(model_path))
+            
+    selected_device = "cpu"   
+    
+# end main

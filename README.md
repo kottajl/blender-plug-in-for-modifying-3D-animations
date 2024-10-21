@@ -2,8 +2,8 @@
 
 Foldery
 - /src -> zawiera pliki zródłowe, w nim jest plik main_addon_file.py, który należy wczytać jako skrypt
-- /interface -> zawiera główny interfejs który muszą zaimplentować modele
-- /models -> będzie zawierał modele których można uzyć, w osobnych folderach o ich nazwach, bezpośrednio w danym folderze powinien być plik nazwa_modelu.py który będzie implementował nasz interfejs
+- /interface -> zawiera główny interfejs który muszą zaimplentować modele 
+- /models -> będzie zawierał modele których można uzyć, w osobnych folderach o ich nazwach, bezpośrednio w danym folderze powinien być plik model.py który będzie implementował nasz interfejs
 - /sample_bvh_files -> przykładowe pliki motion capture
 
 Instrukcja
