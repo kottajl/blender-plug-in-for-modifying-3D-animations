@@ -110,6 +110,8 @@ def get_anim_data(obj):
     anim["parents"] = []
     anim["names"] = []
 
+    # 1. Get bone names, parents and offsets
+
     for bone in armature.bones:
         anim["names"].append(bone.name)
         if bone.parent:     # If bone has parent
@@ -118,6 +120,8 @@ def get_anim_data(obj):
         else:
             anim["parents"].append(-1)
             anim["offsets"].append(bone.head_local)
+
+    # 2. Get positions and rotations
 
     bones_decorated = [DecoratedBone(bone.name, obj, armature) for bone in pose.bones]
     bones_decorated_dict = {dbone.name: dbone for dbone in bones_decorated}
@@ -130,8 +134,8 @@ def get_anim_data(obj):
     for frame in range(scene.frame_start, scene.frame_end + 1):
         scene.frame_set(frame)
         
-        r = []
-        p = []
+        r = []  # rotation
+        p = []  # position
         
         for dbone in bones_decorated:
             dbone.update_posedata()
@@ -140,6 +144,7 @@ def get_anim_data(obj):
             trans = Matrix.Translation(dbone.rest_bone.head_local)
             itrans = Matrix.Translation(-dbone.rest_bone.head_local)
 
+            # Compute current bone location - act on parent bone (if exists), current pose and neutral armature pose
             if dbone.parent:
                 mat_final = dbone.parent.rest_arm_mat @ dbone.parent.pose_imat @ dbone.pose_mat @ dbone.rest_arm_imat
                 mat_final = itrans @ mat_final @ trans
@@ -197,7 +202,7 @@ def get_anim_data(obj):
         
     scene.frame_set(prev_scene_frame)
 
-    # change arrays to numpy arrays
+    # Change arrays to numpy arrays
     anim["rotations"] = np.array(anim["rotations"])
     anim["positions"] = np.array(anim["positions"])
     anim["offsets"] = np.array(anim["offsets"])

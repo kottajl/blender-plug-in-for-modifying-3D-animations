@@ -139,3 +139,6 @@ cython_debug/
 # Blender files
 *.blend1
 *.blend
+
+# MacOS
+.DS_Store
