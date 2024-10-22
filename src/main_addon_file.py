@@ -21,6 +21,8 @@ directory_path = pathlib.Path(bpy.context.space_data.text.filepath).parent.resol
 modules_path = str(directory_path.parent.resolve())
 sys.path.append(modules_path)
 
+import src.metrics as metrics
+
 from interface.general_interface import GeneralInterface
 
 from src.addon_functions import apply_transforms, get_anim_data
@@ -88,6 +90,9 @@ def generate_anim(
         offset=start_frame 
     )
     
+    # calculate metrics
+    print(metrics.calculate_metrics(obj, new_obj, start_frame, end_frame))
+
     return {"FINISHED"}
 
 # end function generate_anim
