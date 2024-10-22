@@ -42,7 +42,8 @@ def generate_anim(
     end_frame: int, 
     post_processing: bool, 
     interface: GeneralInterface,
-    device: str
+    device: str,
+    create_new: bool
 ) -> set[str]:
     
     '''
@@ -71,7 +72,8 @@ def generate_anim(
     inferred_pos, inferred_rot = interface.infer_anim(anim, start_frame, end_frame, post_processing, device)
     
     # copy object
-    new_obj = copy_object(obj, context)
+    if create_new: new_obj = copy_object(obj, context)
+    else: new_obj = obj
 
     # convert original rotation to ZYX Euler angles
     original_rot = convert_array_3x3matrix_to_euler_zyx(anim["rotations"])
@@ -115,13 +117,17 @@ def select_ai_model(index):
     global selected_model
     selected_model = model.ModelInterface()
 
+# end function select_ai_model
+
 def select_ai_model_dropdown(self, context):
     select_ai_model(int(self.model))
 
-# end function select_ai_model
+# end function select_ai_model_dropdown
 
 def get_ai_models_dropdown(self, context):
     return get_ai_models()
+
+# end function get_ai_models_dropdown
 
 def get_ai_models():
     models = []
@@ -167,18 +173,19 @@ class GenerationProperties(PropertyGroup):
     start_frame : IntProperty(name = "start frame", default = 0, min = 0)
     end_frame : IntProperty(name = "end frame", default = 0, min = 0)
     model: EnumProperty(
-        name="model",
+        name="",
         description="Select model for generating frames",
         items=get_ai_models_dropdown,
         update=select_ai_model_dropdown
     )
     device: EnumProperty(
-        name="device",
+        name="",
         description="Select device to compute on",
         items=get_device_list,
         update=select_device
     )
-    post_processing : BoolProperty(name = "post processing", default = False)
+    post_processing : BoolProperty(name = "", default = False)
+    create_new : BoolProperty(name = "", default = True)
     
 # end class GenerationProperties
      
@@ -188,7 +195,7 @@ class GenerationButtonOperator(bpy.types.Operator):
 
     def execute(self, context):
         mt = bpy.context.scene.my_tool
-        return generate_anim(mt.start_frame, mt.end_frame, mt.post_processing, selected_model, selected_device)
+        return generate_anim(mt.start_frame, mt.end_frame, mt.post_processing, selected_model, selected_device, mt.create_new)
          
 # end class GenerateButtonOperator
 
@@ -208,7 +215,7 @@ class AddModelButtonOperator(bpy.types.Operator, bpy_extras.io_utils.ImportHelpe
 # end class GenerateButtonOperator
        
 class GenerationPanel(bpy.types.Panel):
-    bl_label = "Plugin"
+    bl_label = "Addon"
     bl_idname = "plugin.generation_panel"
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
@@ -219,17 +226,48 @@ class GenerationPanel(bpy.types.Panel):
         layout = self.layout
         scene = context.scene  
         mytool = scene.my_tool
-        row = layout.row()
 
+        row_0 = layout.row()
+        row_0.alignment = 'CENTER'
+        row_0.label(text="Model options")
+             
+        split_0 = layout.split(factor=0.3)  
+        split_0.label(text="Add model")
+        split_0.operator(AddModelButtonOperator.bl_idname, text="Choose directory")
+ 
+        split_1 = layout.split(factor=0.24) 
+        split_1.label(text="Selected")
+        split_1.prop(mytool, "model")
+        
+        split_2 = layout.split(factor=0.5) 
+        split_2.label(text="Computing device")
+        split_2.prop(mytool, "device")
+        
+        split_3 = layout.split(factor=0.92) 
+        split_3.label(text="Post processing")
+        split_3.prop(mytool, "post_processing")
+
+        layout.separator()
+        layout.separator()
+        
+        row_1 = layout.row()
+        row_1.alignment = 'CENTER'
+        row_1.label(text="Addon options")
+        
         layout.prop(mytool, "start_frame")
-        layout.prop(mytool, "end_frame")
-        layout.prop(mytool, "model")
-        row.operator(AddModelButtonOperator.bl_idname, text="Add model", icon='COLORSET_01_VEC')
-        layout.prop(mytool, "device")
-        layout.prop(mytool, "post_processing")
-        layout.separator()   
-            
-        row.operator(GenerationButtonOperator.bl_idname, text="Generate animation", icon='COLORSET_01_VEC')
+        layout.prop(mytool, "end_frame")   
+
+        split_4 = layout.split(factor=0.92) 
+        split_4.label(text="Create new object")
+        split_4.prop(mytool, "create_new")
+        
+        layout.separator()
+        
+        row_2 = layout.row()
+        row_2.alignment = 'CENTER'
+        row_2.label(text="Actions")
+                  
+        layout.operator(GenerationButtonOperator.bl_idname, text="Generate frames")
         
 # end class GeneratePanel
 
