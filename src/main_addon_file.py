@@ -45,7 +45,8 @@ def generate_anim(
     post_processing: bool, 
     interface: GeneralInterface,
     device: str,
-    create_new: bool
+    create_new: bool,
+    obj_to_report: object
 ) -> set[str]:
     
     '''
@@ -59,13 +60,18 @@ def generate_anim(
     obj = context.object
 
     # check simple things
-    if len(context.selected_objects) != 1: return {"CANCELLED"} 
-    if obj is None or obj.type != 'ARMATURE': return {"CANCELLED"}
-    if start_frame < scene_start_frame or end_frame > scene_end_frame: return {"CANCELLED"}
-    if start_frame >= end_frame: return {"CANCELLED"}
+    if len(context.selected_objects) != 1 or obj is None or obj.type != 'ARMATURE':
+        obj_to_report.report({'ERROR'}, "Something went wrong.")
+        return {"CANCELLED"} 
+
+    if start_frame < scene_start_frame or end_frame > scene_end_frame or start_frame >= end_frame: 
+        obj_to_report.report({'ERROR'}, "Selected frames range is invalid.")
+        return {"CANCELLED"}
     
     # check if frames are correct in model - function from interface
-    if interface.check_frames_range(start_frame, end_frame, scene_start_frame, scene_end_frame) == False: return {"CANCELLED"} 
+    if interface.check_frames_range(start_frame, end_frame, scene_start_frame, scene_end_frame) == False: 
+        obj_to_report.report({'ERROR'}, "Model needs more frames before or after selected range.")
+        return {"CANCELLED"} 
           
     # load anim data
     anim = get_anim_data(obj)
@@ -102,7 +108,7 @@ def generate_anim(
 # --- Blender window stuff 
 
 bl_info = {
-    "name" : "Plugin",
+    "name" : "Addon",
     "author" : "Pluginowcy",
     "version" : (1, 0),
     "blender" : (4, 0, 0),
@@ -200,7 +206,7 @@ class GenerationButtonOperator(bpy.types.Operator):
 
     def execute(self, context):
         mt = bpy.context.scene.my_tool
-        return generate_anim(mt.start_frame, mt.end_frame, mt.post_processing, selected_model, selected_device, mt.create_new)
+        return generate_anim(mt.start_frame, mt.end_frame, mt.post_processing, selected_model, selected_device, mt.create_new, self)
          
 # end class GenerateButtonOperator
 
@@ -224,8 +230,8 @@ class GenerationPanel(bpy.types.Panel):
     bl_idname = "plugin.generation_panel"
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
-    bl_category = "plugin"
-    bl_context = "objectmode"   
+    bl_category = "Addon"
+    bl_context = ""   
 
     def draw(self, context):
         layout = self.layout
@@ -235,22 +241,16 @@ class GenerationPanel(bpy.types.Panel):
         row_0 = layout.row()
         row_0.alignment = 'CENTER'
         row_0.label(text="Model options")
-             
-        split_0 = layout.split(factor=0.3)  
-        split_0.label(text="Add model")
-        split_0.operator(AddModelButtonOperator.bl_idname, text="Choose directory")
  
-        split_1 = layout.split(factor=0.24) 
-        split_1.label(text="Selected")
-        split_1.prop(mytool, "model")
+        layout.label(text="  Selected model")
+        layout.prop(mytool, "model")
         
-        split_2 = layout.split(factor=0.5) 
-        split_2.label(text="Computing device")
-        split_2.prop(mytool, "device")
-        
-        split_3 = layout.split(factor=0.92) 
-        split_3.label(text="Post processing")
-        split_3.prop(mytool, "post_processing")
+        layout.label(text="  Computing device")
+        layout.prop(mytool, "device")
+             
+        split_0 = layout.split(factor=0.77) 
+        split_0.label(text="  Post processing")
+        split_0.prop(mytool, "post_processing")
 
         layout.separator()
         layout.separator()
@@ -262,9 +262,9 @@ class GenerationPanel(bpy.types.Panel):
         layout.prop(mytool, "start_frame")
         layout.prop(mytool, "end_frame")   
 
-        split_4 = layout.split(factor=0.92) 
-        split_4.label(text="Create new object")
-        split_4.prop(mytool, "create_new")
+        split_1 = layout.split(factor=0.77) 
+        split_1.label(text="  Create new object")
+        split_1.prop(mytool, "create_new")
         
         layout.separator()
         
@@ -273,6 +273,7 @@ class GenerationPanel(bpy.types.Panel):
         row_2.label(text="Actions")
                   
         layout.operator(GenerationButtonOperator.bl_idname, text="Generate frames")
+        layout.operator(AddModelButtonOperator.bl_idname, text="Add model from directory")
         
 # end class GeneratePanel
 
@@ -297,12 +298,12 @@ class dope_sheet_generation_button(bpy.types.Operator):
     def execute(self, context):
         selected_frames = get_selected_keyframes()
         if len(selected_frames) != 2 or selected_frames[0] + 1 == selected_frames[1]:
-            self.report({'INFO'}, "Wrong frames selected.")
+            self.report({'ERROR'}, "Wrong frames range selected.")
             return {"CANCELLED"} 
         else:
             mt = bpy.context.scene.my_tool
             mt.start_frame, mt.end_frame = selected_frames[0], selected_frames[1]
-            return generate_anim(mt.start_frame, mt.end_frame, mt.post_processing, selected_model, selected_device, mt.create_new)
+            return generate_anim(mt.start_frame, mt.end_frame, mt.post_processing, selected_model, selected_device, mt.create_new, self)
 
 # end class dope_sheet_generation_button  
 
@@ -312,30 +313,32 @@ class dope_sheet_options_button(bpy.types.Operator):
     bl_description = "Opens model generation options"
     
     def execute(self, context):
-        return context.window_manager.invoke_props_dialog(self)
+        return context.window_manager.invoke_popup(self)
 
     def draw(self, context):
         layout = self.layout
         scene = context.scene
         mytool = scene.my_tool
                     
-        split_0 = layout.split(factor=0.3)  
+        layout.separator()
+        
+        split_0 = layout.split(factor=0.37)  
         split_0.label(text="Add model")
-        split_0.operator(AddModelButtonOperator.bl_idname, text="Choose directory")
+        split_0.operator(AddModelButtonOperator.bl_idname, text="Choose directory                          ")
  
-        split_1 = layout.split(factor=0.24) 
-        split_1.label(text="Selected")
+        split_1 = layout.split(factor=0.37) 
+        split_1.label(text="Selected model")
         split_1.prop(mytool, "model")
         
-        split_2 = layout.split(factor=0.5) 
+        split_2 = layout.split(factor=0.37) 
         split_2.label(text="Computing device")
         split_2.prop(mytool, "device")
         
-        split_3 = layout.split(factor=0.92) 
+        split_3 = layout.split(factor=0.37) 
         split_3.label(text="Post processing")
         split_3.prop(mytool, "post_processing")
 
-        split_4 = layout.split(factor=0.92) 
+        split_4 = layout.split(factor=0.37) 
         split_4.label(text="Create new object")
         split_4.prop(mytool, "create_new")
         
@@ -343,13 +346,13 @@ class dope_sheet_options_button(bpy.types.Operator):
        
 # end class dope_sheet_options_button
 
-def draw_button_in_dope_sheet(self, context):
+def draw_buttons_in_dope_sheet(self, context):
     layout = self.layout
     layout.separator()  
     layout.operator(dope_sheet_generation_button.bl_idname, text="Generate frames")
     layout.operator(dope_sheet_options_button.bl_idname, text="Generation options")
 
-# end function draw_button_in_dope_sheet
+# end function draw_buttons_in_dope_sheet
 
 generation_window_classes = [AddModelButtonOperator, GenerationButtonOperator, GenerationPanel, GenerationProperties]
 
@@ -359,7 +362,7 @@ def register():
     
     bpy.utils.register_class(dope_sheet_generation_button)
     bpy.utils.register_class(dope_sheet_options_button)
-    bpy.types.DOPESHEET_MT_context_menu.append(draw_button_in_dope_sheet)
+    bpy.types.DOPESHEET_MT_context_menu.append(draw_buttons_in_dope_sheet)
     
 # end function register
 
@@ -369,7 +372,7 @@ def unregister():
 
     bpy.utils.unregister_class(dope_sheet_generation_button)
     bpy.utils.unregister_class(dope_sheet_options_button)
-    bpy.types.DOPESHEET_MT_context_menu.remove(draw_button_in_dope_sheet)
+    bpy.types.DOPESHEET_MT_context_menu.remove(draw_buttons_in_dope_sheet)
     
 # end function unregister
     
