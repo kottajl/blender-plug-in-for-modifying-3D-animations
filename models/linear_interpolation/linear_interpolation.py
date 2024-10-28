@@ -10,7 +10,9 @@ class ModelInterface(GeneralInterface):
     '''
 
     def check_frames_range(self, start_frame, end_frame, scene_start_frame, scene_end_frame) -> bool:
-        return start_frame > scene_start_frame and end_frame < scene_end_frame
+        if start_frame <= scene_start_frame: return (False, "Must be at least 1 frame before selected range.") 
+        if end_frame >= scene_end_frame: return (False, "Must be at least 1 frame after selected range.") 
+        return (True, "")
     
     # end function check_frames_range
 

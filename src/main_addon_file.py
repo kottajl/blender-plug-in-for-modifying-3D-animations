@@ -60,41 +60,68 @@ def generate_anim(
     obj = context.object
 
     # check simple things
-    if len(context.selected_objects) != 1 or obj is None or obj.type != 'ARMATURE':
-        obj_to_report.report({'ERROR'}, "Something went wrong.")
+    if obj is None or obj.type != 'ARMATURE':
+        obj_to_report.report({'ERROR'}, "Selected object must be armature.")
         return {"CANCELLED"} 
+    
+    if len(context.selected_objects) != 1: 
+        obj_to_report.report({'ERROR'}, "Only 1 object can be selected.")
+        return {"CANCELLED"}  
 
-    if start_frame < scene_start_frame or end_frame > scene_end_frame or start_frame >= end_frame: 
+    if start_frame < scene_start_frame or end_frame > scene_end_frame or start_frame + 1 >= end_frame: 
         obj_to_report.report({'ERROR'}, "Selected frames range is invalid.")
         return {"CANCELLED"}
     
     # check if frames are correct in model - function from interface
-    if interface.check_frames_range(start_frame, end_frame, scene_start_frame, scene_end_frame) == False: 
-        obj_to_report.report({'ERROR'}, "Model needs more frames before or after selected range.")
+    b, s = interface.check_frames_range(start_frame, end_frame, scene_start_frame, scene_end_frame)
+    if b == False: 
+        obj_to_report.report({'ERROR'}, f"Selected frames range is invalid in model, {s}")
         return {"CANCELLED"} 
-          
-    # load anim data
-    anim = get_anim_data(obj)
     
+    # load anim data
+    try: 
+        anim = get_anim_data(obj)
+    except Exception as e: 
+        obj_to_report.report({'ERROR'}, f"Error with loading animation data, {e}.")
+        return {"CANCELLED"} 
+
     # infer results from ai model - function from interface
-    inferred_pos, inferred_rot = interface.infer_anim(anim, start_frame, end_frame, post_processing, device)
+    try:
+        print("--- Start of model infer anim logs")
+        inferred_pos, inferred_rot = interface.infer_anim(anim, start_frame, end_frame, post_processing, device)
+        print("--- End of model infer anim logs")
+    except Exception as e: 
+        obj_to_report.report({'ERROR'}, f"Error with using model, {e}.")
+        return {"CANCELLED"} 
     
     # copy object
-    if create_new: new_obj = copy_object(obj, context)
-    else: new_obj = obj
+    try:
+        if create_new: new_obj = copy_object(obj, context)
+        else: new_obj = obj
+    except Exception as e: 
+        obj_to_report.report({'ERROR'}, f"Error while copying object, {e}.")
+        return {"CANCELLED"} 
 
     # convert original rotation to ZYX Euler angles
-    original_rot = convert_array_3x3matrix_to_euler_zyx(anim["rotations"])
+    try:
+        original_rot = convert_array_3x3matrix_to_euler_zyx(anim["rotations"])
+    except Exception as e: 
+        obj_to_report.report({'ERROR'}, f"Error with animation data, {e}.")
+        return {"CANCELLED"} 
 
     # apply new transforms
-    apply_transforms(
+    try:
+        apply_transforms(
         new_obj,
         true_original_pos=anim["positions"], 
         true_inferred_pos=inferred_pos, 
         true_original_rot=original_rot, 
         true_inferred_rot=inferred_rot, 
         offset=start_frame 
-    )
+        )
+    except Exception as e: 
+        obj_to_report.report({'ERROR'}, f"Error while applying new animation to object, {e}.")
+        return {"CANCELLED"} 
     
     # calculate metrics
     print(metrics.calculate_metrics(obj, new_obj, start_frame, end_frame))
@@ -121,12 +148,19 @@ bl_info = {
 
 selected_model : GeneralInterface = None
 selected_device : str = None
+our_model_num = 2
+selected_model_index = 0
 
-def select_ai_model(index):
-    model_path = pathlib.Path(get_ai_models()[index][2])
-    model = importlib.import_module(str(model_path.name))
-    global selected_model
-    selected_model = model.ModelInterface()
+def select_ai_model(index):  
+    try:
+        model_path = pathlib.Path(get_ai_models()[index][2])
+        model = importlib.import_module(str(model_path.name))
+        global selected_model, selected_model_index
+        selected_model = model.ModelInterface()
+        selected_model_index = index
+    except Exception as e:
+        select_ai_model(0)
+        raise(e)
 
 # end function select_ai_model
 
@@ -155,19 +189,19 @@ def get_ai_models():
 # end function get_ai_models
 
 def get_device_list(self, context):
-    devices = [("0", "cpu", "cpu")] 
+    devices = [("0", "CPU", "cpu")] 
     device_i = 1
 
     # Cuda for NVIDIA GPU
     if torch.cuda.is_available():
         num_gpus = torch.cuda.device_count()
         for i in range(num_gpus):
-            devices.append((str(device_i), f"cuda:{i}", f"cuda:{i}"))
+            devices.append((str(device_i), f"GPU {i}", f"cuda:{i}"))
             device_i += 1
 
     # MPS for ARM GPU
     if torch.backends.mps.is_available() and torch.backends.mps.is_built():
-        devices.append((str(device_i), "mps", "mps"))
+        devices.append((str(device_i), "MPS", "mps"))
         device_i += 1
 
     return devices
@@ -214,20 +248,57 @@ class AddModelButtonOperator(bpy.types.Operator, bpy_extras.io_utils.ImportHelpe
     bl_idname = "plugin.add_model_button"
     bl_label = "plugin"
 
+    filename_ext = ".py"
+    filter_glob: bpy.props.StringProperty(default="*.py", options={'HIDDEN'})
+
     def execute(self, context):
         with open(directory_path / "model_paths.json", "r") as file:
             models = json.load(file)
-        path = pathlib.Path(self.filepath)
-        models["model_paths"].append({"name": str(path.stem), "path": str(path.parent.resolve() / path.stem)})
+        try:
+            path = pathlib.Path(self.filepath)
+            models["model_paths"].append({"name": str(path.stem), "path": str(path.parent.resolve() / path.stem)})
+        except Exception as e:
+            self.report({'ERROR'}, f"Someting went wrong while adding model, {e}.")
+            return {"CANCELLED"} 
+        
         with open(directory_path / "model_paths.json", "w") as file:
             file.write(json.dumps(models, indent=4))
+        try:   
+            select_ai_model((len(get_ai_models_dropdown(self, context)) - 1))
+        except Exception as e:
+            with open(directory_path / "model_paths.json", "r") as file:
+                models = json.load(file)
+            del models["model_paths"][len(models["model_paths"]) - 1]
+            with open(directory_path / "model_paths.json", "w") as file:
+                json.dump(models, file, indent=4)
+            self.report({'ERROR'}, f"Someting went wrong while adding model, {e}.")
+            return {"CANCELLED"} 
         return {"FINISHED"}
          
-# end class GenerateButtonOperator
+# end class AddModelButtonOperator
+
+class DeleteModelButtonOperator(bpy.types.Operator):
+    bl_idname = "plugin.delete_model_button"
+    bl_label = "plugin"
+
+    def execute(self, context):
+        if selected_model_index < our_model_num:
+            self.report({'ERROR'}, "Can't delete premade models.")
+            return {"CANCELLED"} 
+        else:
+            with open(directory_path / "model_paths.json", "r") as file:
+                models = json.load(file)
+            del models["model_paths"][selected_model_index]
+            with open(directory_path / "model_paths.json", "w") as file:
+                json.dump(models, file, indent=4)
+            select_ai_model(0)
+        return {"FINISHED"}
+         
+# end class DeleteModelButtonOperator
        
-class GenerationPanel(bpy.types.Panel):
+class PLUGIN_PT_GenerationPanel(bpy.types.Panel):
     bl_label = "Addon"
-    bl_idname = "plugin.generation_panel"
+    bl_idname = "PLUGIN_PT_generation_panel"
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
     bl_category = "Addon"
@@ -274,6 +345,7 @@ class GenerationPanel(bpy.types.Panel):
                   
         layout.operator(GenerationButtonOperator.bl_idname, text="Generate frames")
         layout.operator(AddModelButtonOperator.bl_idname, text="Add model from directory")
+        layout.operator(DeleteModelButtonOperator.bl_idname, text="Delete selected model")
         
 # end class GeneratePanel
 
@@ -325,7 +397,11 @@ class dope_sheet_options_button(bpy.types.Operator):
         split_0 = layout.split(factor=0.37)  
         split_0.label(text="Add model")
         split_0.operator(AddModelButtonOperator.bl_idname, text="Choose directory                          ")
- 
+
+        split_5 = layout.split(factor=0.37)  
+        split_5.label(text="Delete model")
+        split_5.operator(DeleteModelButtonOperator.bl_idname, text="Delete selected model                  ")
+        
         split_1 = layout.split(factor=0.37) 
         split_1.label(text="Selected model")
         split_1.prop(mytool, "model")
@@ -354,7 +430,7 @@ def draw_buttons_in_dope_sheet(self, context):
 
 # end function draw_buttons_in_dope_sheet
 
-generation_window_classes = [AddModelButtonOperator, GenerationButtonOperator, GenerationPanel, GenerationProperties]
+generation_window_classes = [AddModelButtonOperator, GenerationButtonOperator, PLUGIN_PT_GenerationPanel, GenerationProperties, DeleteModelButtonOperator]
 
 def register():
     for x in generation_window_classes: register_class(x)  
