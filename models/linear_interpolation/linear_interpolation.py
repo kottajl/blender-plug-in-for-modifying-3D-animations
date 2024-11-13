@@ -104,6 +104,8 @@ class ModelInterface(GeneralInterface):
         # Convert to Euler ZYX
         interpolated_rotations = convert_array_3x3matrix_to_euler_zyx(interpolated_rotations)
 
+        print("Linear interpolation done")
+        
         return interpolated_positions, interpolated_rotations
             
     # end function infer_anim

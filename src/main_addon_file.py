@@ -1,15 +1,27 @@
-# --- TODO improve
+# --- Instaling libraries for addon in Blender python instance if not installed
 
-# import subprocess
-# subprocess.check_call([sys.executable, '-m', 'pip', 'install', 'numpy'])
-# subprocess.check_call([sys.executable, '-m', 'pip', 'install', 'scipy'])
-# subprocess.check_call([sys.executable, '-m', 'pip', 'install', 'torch'])
+import subprocess
+import sys
+
+try:
+    import numpy
+except ModuleNotFoundError:
+    subprocess.check_call([sys.executable, '-m', 'pip', 'install', 'numpy'])
+
+try:
+    import torch
+except ModuleNotFoundError:
+    subprocess.check_call([sys.executable, '-m', 'pip', 'install', 'torch'])
+
+try:
+    import scipy
+except ModuleNotFoundError:
+    subprocess.check_call([sys.executable, '-m', 'pip', 'install', 'scipy'])
 
 
 
 # --- Imports 
 
-import sys
 import os
 import bpy
 import json
@@ -46,7 +58,8 @@ def generate_anim(
     interface: GeneralInterface,
     device: str,
     create_new: bool,
-    obj_to_report: object
+    obj_to_report: object,
+    calculate_metrics: bool
 ) -> set[str]:
     
     '''
@@ -124,7 +137,8 @@ def generate_anim(
         return {"CANCELLED"} 
     
     # calculate metrics
-    print(metrics.calculate_metrics(obj, new_obj, start_frame, end_frame))
+    if calculate_metrics:
+        print(metrics.calculate_metrics(obj, new_obj, start_frame, end_frame))
 
     return {"FINISHED"}
 
@@ -231,6 +245,7 @@ class GenerationProperties(PropertyGroup):
     )
     post_processing : BoolProperty(name = "", default = False)
     create_new : BoolProperty(name = "", default = True)
+    calculate_metrics: BoolProperty(name = "", default = True)
     
 # end class GenerationProperties
      
@@ -240,7 +255,7 @@ class GenerationButtonOperator(bpy.types.Operator):
 
     def execute(self, context):
         mt = bpy.context.scene.my_tool
-        return generate_anim(mt.start_frame, mt.end_frame, mt.post_processing, selected_model, selected_device, mt.create_new, self)
+        return generate_anim(mt.start_frame, mt.end_frame, mt.post_processing, selected_model, selected_device, mt.create_new, self, mt.calculate_metrics)
          
 # end class GenerateButtonOperator
 
@@ -276,6 +291,37 @@ class AddModelButtonOperator(bpy.types.Operator, bpy_extras.io_utils.ImportHelpe
         return {"FINISHED"}
          
 # end class AddModelButtonOperator
+
+class InstallLibrariesOperator(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
+    bl_idname = "plugin.install_libraries_button"
+    bl_label = "Install"
+
+    filename_ext = ".txt"
+    filter_glob: bpy.props.StringProperty(default="*.txt", options={'HIDDEN'})
+
+    def execute(self, context):
+        print("--- Updating PIP")
+        subprocess.check_call([sys.executable, '-m', 'pip', 'install', '--upgrade', 'pip'])
+        print("--- Installing libraries")
+        not_installed = []
+        with open(self.filepath, 'r', encoding='utf-8') as file:
+            for line in file:
+                x = line.strip()
+                if not x or x.startswith('#'): continue
+                pip_parts = [sys.executable, '-m', 'pip', 'install'] + x.split()
+                try:
+                    subprocess.check_call(pip_parts)
+                except Exception as e:
+                    print("\033[33m" + str(e) + "\033[0m")
+                    not_installed.append(x)
+        print("--- Finished installing libraries")
+        if len(not_installed) > 0:
+            print("Not installed libraries:")
+            for x in not_installed: print(x)
+            print("--- End")
+        return {"FINISHED"}
+         
+# end class InstallLibrariesOperator
 
 class DeleteModelButtonOperator(bpy.types.Operator):
     bl_idname = "plugin.delete_model_button"
@@ -336,6 +382,10 @@ class PLUGIN_PT_GenerationPanel(bpy.types.Panel):
         split_1 = layout.split(factor=0.77) 
         split_1.label(text="  Create new object")
         split_1.prop(mytool, "create_new")
+
+        split_2 = layout.split(factor=0.77) 
+        split_2.label(text="  Calcuate metrcis")
+        split_2.prop(mytool, "calculate_metrics")
         
         layout.separator()
         
@@ -346,6 +396,7 @@ class PLUGIN_PT_GenerationPanel(bpy.types.Panel):
         layout.operator(GenerationButtonOperator.bl_idname, text="Generate frames")
         layout.operator(AddModelButtonOperator.bl_idname, text="Add model from directory")
         layout.operator(DeleteModelButtonOperator.bl_idname, text="Delete selected model")
+        layout.operator(InstallLibrariesOperator.bl_idname, text="Install libraries from TXT") 
         
 # end class GeneratePanel
 
@@ -375,7 +426,7 @@ class dope_sheet_generation_button(bpy.types.Operator):
         else:
             mt = bpy.context.scene.my_tool
             mt.start_frame, mt.end_frame = selected_frames[0], selected_frames[1]
-            return generate_anim(mt.start_frame, mt.end_frame, mt.post_processing, selected_model, selected_device, mt.create_new, self)
+            return generate_anim(mt.start_frame, mt.end_frame, mt.post_processing, selected_model, selected_device, mt.create_new, self, mt.calculate_metrics)
 
 # end class dope_sheet_generation_button  
 
@@ -401,6 +452,10 @@ class dope_sheet_options_button(bpy.types.Operator):
         split_5 = layout.split(factor=0.37)  
         split_5.label(text="Delete model")
         split_5.operator(DeleteModelButtonOperator.bl_idname, text="Delete selected model                  ")
+
+        split_7 = layout.split(factor=0.37)  
+        split_7.label(text="Install libraries")
+        split_7.operator(InstallLibrariesOperator.bl_idname, text="Choose TXT file                            ")
         
         split_1 = layout.split(factor=0.37) 
         split_1.label(text="Selected model")
@@ -417,6 +472,10 @@ class dope_sheet_options_button(bpy.types.Operator):
         split_4 = layout.split(factor=0.37) 
         split_4.label(text="Create new object")
         split_4.prop(mytool, "create_new")
+
+        split_77 = layout.split(factor=0.37) 
+        split_77.label(text="Calculate metrics")
+        split_77.prop(mytool, "calculate_metrics")
         
         layout.separator()
        
@@ -430,7 +489,7 @@ def draw_buttons_in_dope_sheet(self, context):
 
 # end function draw_buttons_in_dope_sheet
 
-generation_window_classes = [AddModelButtonOperator, GenerationButtonOperator, PLUGIN_PT_GenerationPanel, GenerationProperties, DeleteModelButtonOperator]
+generation_window_classes = [InstallLibrariesOperator, AddModelButtonOperator, GenerationButtonOperator, PLUGIN_PT_GenerationPanel, GenerationProperties, DeleteModelButtonOperator]
 
 def register():
     for x in generation_window_classes: register_class(x)  
