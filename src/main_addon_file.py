@@ -138,7 +138,12 @@ def generate_anim(
     
     # calculate metrics
     if calculate_metrics:
-        print(metrics.calculate_metrics(obj, new_obj, start_frame, end_frame))
+        print(metrics.calculate_metrics(
+            orginal_obj=obj, 
+            generated_obj=new_obj, 
+            start_frame=start_frame, 
+            end_frame=end_frame
+        ))
 
     return {"FINISHED"}
 
