@@ -2,36 +2,47 @@
 
 import subprocess
 import sys
-
-try:
-    import numpy
-except ModuleNotFoundError:
-    subprocess.check_call([sys.executable, '-m', 'pip', 'install', 'numpy'])
-
-try:
-    import torch
-except ModuleNotFoundError:
-    subprocess.check_call([sys.executable, '-m', 'pip', 'install', 'torch'])
-
-try:
-    import scipy
-except ModuleNotFoundError:
-    subprocess.check_call([sys.executable, '-m', 'pip', 'install', 'scipy'])
-
-
-
-# --- Imports 
-
+import importlib
 import os
 import bpy
-import json
 import pathlib
-import torch
-import importlib
+import json
 
 directory_path = pathlib.Path(bpy.context.space_data.text.filepath).parent.resolve()
 modules_path = str(directory_path.parent.resolve())
 sys.path.append(modules_path)
+
+installing = False
+with open(str(directory_path) + str(os.sep) + "addon_requirements.txt", 'r', encoding='utf-8') as file:
+    for line in file:
+        x = line.strip()
+        pip_parts = [sys.executable, '-m', 'pip', 'install'] + x.split()
+        try:
+            importlib.import_module(pip_parts[4])
+        except ModuleNotFoundError: 
+            if not installing: 
+                bpy.context.window_manager.popup_menu(
+                    lambda self, context: self.layout.label(text="Started installing libraries."), 
+                    title="Info", 
+                    icon='INFO'
+                )
+                installing = True
+                print("--- Updating PIP")
+                subprocess.check_call([sys.executable, '-m', 'pip', 'install', '--upgrade', 'pip'])
+                print("--- Installing libraries")
+            subprocess.check_call(pip_parts)
+
+if installing:
+    print("--- Done")
+    bpy.context.window_manager.popup_menu(
+        lambda self, context: self.layout.label(text="Done installing libraries."), 
+        title="Info", 
+        icon='INFO'
+   )
+
+# --- Addon imports 
+
+import torch
 
 import src.metrics as metrics
 
