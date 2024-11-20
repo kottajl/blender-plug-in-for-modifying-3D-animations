@@ -7,31 +7,112 @@ import os
 import bpy
 import pathlib
 import json
+import platform 
 
 directory_path = pathlib.Path(bpy.context.space_data.text.filepath).parent.resolve()
 modules_path = str(directory_path.parent.resolve())
 sys.path.append(modules_path)
 
+os_name = platform.system()
+req_path = str(directory_path) + str(os.sep) + "addon_requirements.txt"
+
+def handle_pytorch3d_installation():
+    try:
+        import pytorch3d
+    except ModuleNotFoundError:
+        # TODO
+        print("Started installing pytorch3d.")
+        return True
+    else:
+        print("Pytorch3d already installed.")
+        return True
+
+def handle_torch_installation():
+    try:
+        import torch
+    except ModuleNotFoundError:
+        pip_parts = [sys.executable, '-m', 'pip', 'install', 'torch', 'torchvision', 'torchaudio']
+        if os_name == "Windows":
+            cuda_path = os.getenv('CUDA_PATH')
+            if cuda_path: 
+                pip_parts.append('--index-url')
+                cuda_version = cuda_path[-4] + cuda_path[-3] + cuda_path[-1]
+                if cuda_version in ["124", "121"]: url = "https://download.pytorch.org/whl/cu" + cuda_version
+                else: url = "https://download.pytorch.org/whl/cu118"
+                pip_parts.append(url)
+
+        if os_name == "Linux":
+            try:
+                result = subprocess.run(['nvcc', '--version'], capture_output=True, text=True)
+                if result.returncode == 0:
+                    version_line = result.stdout.splitlines()[0]
+                    version = version_line.split(",")[1].split()[1]  
+                    version = str(version)
+                    version = version[0] + version[1] + version[3]
+                    if version in ["118", "121"]: 
+                        url = "https://download.pytorch.org/whl/cu" + version
+                        pip_parts.append(url)
+                else:
+                    pip_parts.append('--index-url')
+                    pip_parts.append("https://download.pytorch.org/whl/cpu")
+            except FileNotFoundError:
+                pip_parts.append('--index-url')
+                pip_parts.append("https://download.pytorch.org/whl/cpu")
+
+            if pip_parts[-1] == "https://download.pytorch.org/whl/cpu":
+                try:
+                    result = subprocess.run(['rocminfo'], capture_output=True, text=True)
+                    if result.returncode == 0:
+                        pip_parts.append('--index-url')
+                        pip_parts.append("https://download.pytorch.org/whl/rocm6.2")
+                except FileNotFoundError:
+                    pass
+        
+        try:
+            print("Started installing torch, torchvision and torchaudio.")
+            subprocess.check_call(pip_parts)
+        except Exception as e:
+            print("\033[33m" + str(e) + "\033[0m")
+            return False
+        else:
+            print("Successfully installed torch, torchvision and torchaudio.")
+            return True
+                
+    else:
+        print("Torch, torchvision and torchaudio already installed.")
+        return True
+
 installing = False
-with open(str(directory_path) + str(os.sep) + "addon_requirements.txt", 'r', encoding='utf-8') as file:
+with open(req_path, 'r', encoding='utf-8') as file:
     for line in file:
         x = line.strip()
-        pip_parts = [sys.executable, '-m', 'pip', 'install'] + x.split()
+        if not x or x.startswith('#'): continue
+
+        pip_parts = [sys.executable, '-m', 'pip', 'install'] + [
+            part.replace("==", ">=") if "==" in part else part for part in x.split()
+        ]
+
+        lib_name = pip_parts[4]
+        if '>=' in lib_name: lib_name = lib_name.split('>=')[0]
+
         try:
-            importlib.import_module(pip_parts[4])
+            importlib.import_module(lib_name)
         except ModuleNotFoundError: 
             if not installing: 
+                installing = True
                 bpy.context.window_manager.popup_menu(
                     lambda self, context: self.layout.label(text="Started installing libraries."), 
                     title="Info", 
                     icon='INFO'
                 )
-                installing = True
                 print("--- Updating PIP")
                 subprocess.check_call([sys.executable, '-m', 'pip', 'install', '--upgrade', 'pip'])
                 print("--- Installing libraries")
-            subprocess.check_call(pip_parts)
 
+            if lib_name in ["torch", "torchvision", "torchaudio"]: handle_torch_installation()
+            elif lib_name == "pytorch3d": handle_pytorch3d_installation()     
+            else: subprocess.check_call(pip_parts)
+                
 if installing:
     print("--- Done")
     bpy.context.window_manager.popup_menu(
@@ -39,6 +120,8 @@ if installing:
         title="Info", 
         icon='INFO'
    )
+
+
 
 # --- Addon imports 
 
@@ -318,25 +401,44 @@ class InstallLibrariesOperator(bpy.types.Operator, bpy_extras.io_utils.ImportHel
     def execute(self, context):
         print("--- Updating PIP")
         subprocess.check_call([sys.executable, '-m', 'pip', 'install', '--upgrade', 'pip'])
+
         print("--- Installing libraries")
         not_installed = []
+
         with open(self.filepath, 'r', encoding='utf-8') as file:
             for line in file:
                 x = line.strip()
                 if not x or x.startswith('#'): continue
-                pip_parts = [sys.executable, '-m', 'pip', 'install'] + x.split()
+
+                pip_parts = [sys.executable, '-m', 'pip', 'install'] + [
+                    part.replace("==", ">=") if "==" in part else part for part in x.split()
+                ]
+
+                lib_name = pip_parts[4]
+                if '>=' in lib_name: lib_name = lib_name.split('>=')[0]
+
+                if lib_name in ["torch", "torchvision", "torchaudio"]: 
+                    if handle_torch_installation() == False: not_installed.append(x)
+                    continue
+                elif lib_name == "pytorch3d": 
+                    if handle_pytorch3d_installation() == False: not_installed.append(x)
+                    continue
+
                 try:
                     subprocess.check_call(pip_parts)
                 except Exception as e:
                     print("\033[33m" + str(e) + "\033[0m")
                     not_installed.append(x)
-        print("--- Finished installing libraries")
+
         if len(not_installed) > 0:
-            print("Not installed libraries:")
+            print("--- Not installed libraries")
             for x in not_installed: print(x)
             print("--- End")
+        else:
+            print("--- Successfully installed all libraries")
+
         return {"FINISHED"}
-         
+    
 # end class InstallLibrariesOperator
 
 class DeleteModelButtonOperator(bpy.types.Operator):
