@@ -20,9 +20,41 @@ def handle_pytorch3d_installation():
     try:
         import pytorch3d
     except ModuleNotFoundError:
-        # TODO
         print("Started installing pytorch3d.")
-        return True
+        if os_name == "Windows":
+            pytorch3d_whl_path = str(directory_path).removesuffix("src") + "lib" +  str(os.sep) + "pytorch3d-0.7.8-cp310-cp310-win_amd64.whl"
+            try:
+                subprocess.check_call([sys.executable, '-m', 'pip', 'install', pytorch3d_whl_path])
+            except Exception as e:
+                print("\033[33m" + str(e) + "\033[0m")
+                return False
+            else:
+                print("Successfully installed pytorch3d.")
+                return True
+            
+        elif os_name == "Darwin": # Mac
+            print("To install pytorch3d on MAC you have to install it from source.")
+            print("https://github.com/facebookresearch/pytorch3d/blob/main/INSTALL.md#building--installing-from-source")
+            print("Install it in Blender Python instance using python -m [commands].")
+            return False
+    
+        else: # Linux
+            try:
+                import torch
+                version_str = "".join([
+                    "py38_cu",
+                    torch.version.cuda.replace(".",""),
+                    "_pyt1110"
+                ])
+                subprocess.check_call([sys.executable, '-m', 'pip', 'install', "iopath"])
+                subprocess.check_call([sys.executable, '-m', 'pip', 'install', "pytorch3d", "-f", f"https://dl.fbaipublicfiles.com/pytorch3d/packaging/wheels/{version_str}/download.html"])
+            except Exception as e:
+                print("\033[33m" + str(e) + "\033[0m")
+                return False
+            else:
+                print("Successfully installed pytorch3d.")
+                return True
+            
     else:
         print("Pytorch3d already installed.")
         return True
@@ -30,36 +62,39 @@ def handle_pytorch3d_installation():
 def handle_torch_installation():
     try:
         import torch
+        import torchaudio
+        import torchvision
     except ModuleNotFoundError:
         pip_parts = [sys.executable, '-m', 'pip', 'install', 'torch', 'torchvision', 'torchaudio']
         if os_name == "Windows":
+            pip_parts.append('--index-url')
             cuda_path = os.getenv('CUDA_PATH')
             if cuda_path: 
-                pip_parts.append('--index-url')
                 cuda_version = cuda_path[-4] + cuda_path[-3] + cuda_path[-1]
                 if cuda_version in ["124", "121"]: url = "https://download.pytorch.org/whl/cu" + cuda_version
                 else: url = "https://download.pytorch.org/whl/cu118"
                 pip_parts.append(url)
+            else:
+                pip_parts.append("https://download.pytorch.org/whl/cu118")
 
-        if os_name == "Linux":
+        elif os_name == "Linux":
+            cuda_present = False
             try:
                 result = subprocess.run(['nvcc', '--version'], capture_output=True, text=True)
                 if result.returncode == 0:
-                    version_line = result.stdout.splitlines()[0]
-                    version = version_line.split(",")[1].split()[1]  
-                    version = str(version)
-                    version = version[0] + version[1] + version[3]
+                    cuda_present = True
+                    cuda_version_line = result.stdout.splitlines()[0]
+                    cuda_version = cuda_version_line.split(",")[1].split()[1]  
+                    cuda_version = str(cuda_version)
+                    cuda_version = cuda_version[0] + cuda_version[1] + cuda_version[3]
                     if version in ["118", "121"]: 
-                        url = "https://download.pytorch.org/whl/cu" + version
+                        pip_parts.append('--index-url')
+                        url = "https://download.pytorch.org/whl/cu" + cuda_version
                         pip_parts.append(url)
-                else:
-                    pip_parts.append('--index-url')
-                    pip_parts.append("https://download.pytorch.org/whl/cpu")
             except FileNotFoundError:
-                pip_parts.append('--index-url')
-                pip_parts.append("https://download.pytorch.org/whl/cpu")
+                pass
 
-            if pip_parts[-1] == "https://download.pytorch.org/whl/cpu":
+            if not cuda_present:
                 try:
                     result = subprocess.run(['rocminfo'], capture_output=True, text=True)
                     if result.returncode == 0:
