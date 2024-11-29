@@ -12,6 +12,15 @@ class GeneralInterface(ABC):
         pass
 
     @abstractmethod
+    def get_infer_anim_kwargs() -> list[tuple[type, str, str]]:
+
+        '''
+        Return kwargs as list with tuples (variable type, name, description).
+        '''
+
+        pass
+
+    @abstractmethod
     def infer_anim() -> tuple[list, list]:
 
         '''

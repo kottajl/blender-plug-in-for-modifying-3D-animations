@@ -16,8 +16,12 @@ class ModelInterface(GeneralInterface):
     
     # end function check_frames_range
 
+    def get_infer_anim_kwargs(self) -> list[tuple[type, str, str]]:
+        return []
 
-    def infer_anim(self, anim_data, start_frame, end_frame, post_processing, device):  
+    # end get_infer_anim_kwargs
+
+    def infer_anim(self, anim_data, start_frame, end_frame, **kwargs):  
                 
         def convert_array_3x3matrix_to_euler_zyx(mat: np.array) -> np.ndarray: 
     

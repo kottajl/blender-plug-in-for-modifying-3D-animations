@@ -171,7 +171,7 @@ from src.utils import copy_object, convert_array_3x3matrix_to_euler_zyx
 
 from bpy.utils import register_class, unregister_class
 from bpy.types import PropertyGroup
-from bpy.props import IntProperty, PointerProperty, BoolProperty, EnumProperty
+from bpy.props import IntProperty, PointerProperty, BoolProperty, EnumProperty, StringProperty, FloatProperty
 import bpy_extras
 
 sys.path.remove(modules_path)
@@ -183,12 +183,11 @@ sys.path.remove(modules_path)
 def generate_anim(
     start_frame: int, 
     end_frame: int, 
-    post_processing: bool, 
     interface: GeneralInterface,
-    device: str,
     create_new: bool,
     obj_to_report: object,
-    calculate_metrics: bool
+    calculate_metrics: bool,
+    **kwargs: dict
 ) -> set[str]:
     
     '''
@@ -230,7 +229,7 @@ def generate_anim(
     # infer results from ai model - function from interface
     try:
         print("--- Start of model infer anim logs")
-        inferred_pos, inferred_rot = interface.infer_anim(anim, start_frame, end_frame, post_processing, device)
+        inferred_pos, inferred_rot = interface.infer_anim(anim, start_frame, end_frame, **kwargs)
         print("--- End of model infer anim logs")
     except Exception as e: 
         obj_to_report.report({'ERROR'}, f"Error with using model, {e}.")
@@ -298,6 +297,8 @@ selected_model : GeneralInterface = None
 selected_device : str = None
 our_model_num = 2
 selected_model_index = 0
+current_kwargs_attributes = []
+device_arg_name = ""
 
 def select_ai_model(index):  
     try:
@@ -306,6 +307,7 @@ def select_ai_model(index):
         global selected_model, selected_model_index
         selected_model = model.ModelInterface()
         selected_model_index = index
+        bpy.context.scene.my_tool.update_properties(bpy.context)
     except Exception as e:
         select_ai_model(0)
         raise(e)
@@ -358,29 +360,73 @@ def get_device_list(self, context):
 
 def select_device(self, context):
     global selected_device
-    selected_device = get_device_list(self, context)[int(self.device)][2]
+    selected_device = get_device_list(self, context)[int(getattr(self, device_arg_name))][2]
 
 # end function select_device
                                                         
-class GenerationProperties(PropertyGroup):
-    start_frame : IntProperty(name = "start frame", default = 0, min = 0)
-    end_frame : IntProperty(name = "end frame", default = 0, min = 0)
+class GenerationProperties(PropertyGroup): 
+    start_frame : IntProperty(name = "Start frame", default = 0, min = 0)
+    end_frame : IntProperty(name = "End frame", default = 0, min = 0)
     model: EnumProperty(
-        name="",
+        name="AI model",
         description="Select model for generating frames",
         items=get_ai_models_dropdown,
-        update=select_ai_model_dropdown
+        update=select_ai_model_dropdown,
+        default=0
     )
-    device: EnumProperty(
-        name="",
-        description="Select device to compute on",
-        items=get_device_list,
-        update=select_device
-    )
-    post_processing : BoolProperty(name = "", default = False)
-    create_new : BoolProperty(name = "", default = True)
-    calculate_metrics: BoolProperty(name = "", default = True)
+    create_new : BoolProperty(name = "  Create new object", default = True)
+    calculate_metrics: BoolProperty(name = "  Calculate metrics", default = True)
+
+    def update_properties(self, context): 
+        global current_kwargs_attributes
+        for x in current_kwargs_attributes: delattr(GenerationProperties, x) 
+        current_kwargs_attributes = []
     
+        if selected_model is not None:
+            kwargs_list = selected_model.get_infer_anim_kwargs()
+            device_added = False
+            for var_type, var_name, var_desc in kwargs_list:
+                if var_type == torch.device and not device_added:
+                    setattr(GenerationProperties, var_name, EnumProperty(
+                        name= var_name,
+                        description=var_desc,
+                        items=get_device_list,
+                        update=select_device,
+                        default=0
+                    ))
+                    device_added = True
+                    global device_arg_name
+                    device_arg_name = var_name
+                    current_kwargs_attributes.append(var_name)
+                elif var_type == bool:
+                    setattr(GenerationProperties, var_name, BoolProperty(
+                        name= "  " + var_name,
+                        description=var_desc,
+                        default=False
+                    ))
+                    current_kwargs_attributes.append(var_name)
+                elif var_type == int:
+                    setattr(GenerationProperties, var_name, IntProperty(
+                        name= var_name,
+                        description=var_desc,
+                        default=0
+                    ))
+                    current_kwargs_attributes.append(var_name)
+                elif var_type == float:
+                    setattr(GenerationProperties, var_name, FloatProperty(
+                        name= var_name,
+                        description=var_desc,
+                        default=0.0
+                    ))
+                    current_kwargs_attributes.append(var_name)
+                elif var_type == str:
+                    setattr(GenerationProperties, var_name, StringProperty( 
+                        name= var_name,
+                        description=var_desc,
+                        default=""
+                    ))
+                    current_kwargs_attributes.append(var_name)
+
 # end class GenerationProperties
      
 class GenerationButtonOperator(bpy.types.Operator):
@@ -389,7 +435,14 @@ class GenerationButtonOperator(bpy.types.Operator):
 
     def execute(self, context):
         mt = bpy.context.scene.my_tool
-        return generate_anim(mt.start_frame, mt.end_frame, mt.post_processing, selected_model, selected_device, mt.create_new, self, mt.calculate_metrics)
+        kwargs = dict()
+        if selected_model is not None:
+            kwargs_list = selected_model.get_infer_anim_kwargs()
+            for t, n, d in kwargs_list:
+                if t == torch.device: kwargs[n] = selected_device
+                else: kwargs[n] = getattr(mt, n) 
+
+        return generate_anim(mt.start_frame, mt.end_frame, selected_model, mt.create_new, self, mt.calculate_metrics, **kwargs)
          
 # end class GenerateButtonOperator
 
@@ -508,48 +561,27 @@ class PLUGIN_PT_GenerationPanel(bpy.types.Panel):
         scene = context.scene  
         mytool = scene.my_tool
 
-        row_0 = layout.row()
-        row_0.alignment = 'CENTER'
-        row_0.label(text="Model options")
- 
-        layout.label(text="  Selected model")
         layout.prop(mytool, "model")
-        
-        layout.label(text="  Computing device")
-        layout.prop(mytool, "device")
-             
-        split_0 = layout.split(factor=0.77) 
-        split_0.label(text="  Post processing")
-        split_0.prop(mytool, "post_processing")
-
-        layout.separator()
-        layout.separator()
-        
-        row_1 = layout.row()
-        row_1.alignment = 'CENTER'
-        row_1.label(text="Addon options")
-        
-        layout.prop(mytool, "start_frame")
-        layout.prop(mytool, "end_frame")   
-
-        split_1 = layout.split(factor=0.77) 
-        split_1.label(text="  Create new object")
-        split_1.prop(mytool, "create_new")
-
-        split_2 = layout.split(factor=0.77) 
-        split_2.label(text="  Calcuate metrcis")
-        split_2.prop(mytool, "calculate_metrics")
+        for x in current_kwargs_attributes: layout.prop(mytool, x)
         
         layout.separator()
-        
-        row_2 = layout.row()
-        row_2.alignment = 'CENTER'
-        row_2.label(text="Actions")
-                  
-        layout.operator(GenerationButtonOperator.bl_idname, text="Generate frames")
+        layout.separator()
+        layout.separator()
+
         layout.operator(AddModelButtonOperator.bl_idname, text="Add model from directory")
         layout.operator(DeleteModelButtonOperator.bl_idname, text="Delete selected model")
         layout.operator(InstallLibrariesOperator.bl_idname, text="Install libraries from TXT") 
+
+        layout.separator()
+        layout.separator()
+        layout.separator()
+              
+        layout.prop(mytool, "start_frame")
+        layout.prop(mytool, "end_frame")   
+        layout.prop(mytool, "create_new")
+        layout.prop(mytool, "calculate_metrics")
+
+        layout.operator(GenerationButtonOperator.bl_idname, text="Generate frames")
         
 # end class GeneratePanel
 
@@ -579,7 +611,14 @@ class dope_sheet_generation_button(bpy.types.Operator):
         else:
             mt = bpy.context.scene.my_tool
             mt.start_frame, mt.end_frame = selected_frames[0], selected_frames[1]
-            return generate_anim(mt.start_frame, mt.end_frame, mt.post_processing, selected_model, selected_device, mt.create_new, self, mt.calculate_metrics)
+            kwargs = dict()
+            if selected_model is not None:
+                kwargs_list = selected_model.get_infer_anim_kwargs()
+                for t, n, d in kwargs_list:
+                    if t == torch.device: kwargs[n] = selected_device
+                    else: kwargs[n] = getattr(mt, n) 
+
+            return generate_anim(mt.start_frame, mt.end_frame, selected_model, mt.create_new, self, mt.calculate_metrics, **kwargs)
 
 # end class dope_sheet_generation_button  
 
@@ -597,38 +636,20 @@ class dope_sheet_options_button(bpy.types.Operator):
         mytool = scene.my_tool
                     
         layout.separator()
-        
-        split_0 = layout.split(factor=0.37)  
-        split_0.label(text="Add model")
-        split_0.operator(AddModelButtonOperator.bl_idname, text="Choose directory                          ")
 
-        split_5 = layout.split(factor=0.37)  
-        split_5.label(text="Delete model")
-        split_5.operator(DeleteModelButtonOperator.bl_idname, text="Delete selected model                  ")
+        layout.prop(mytool, "model")
+        for x in current_kwargs_attributes: layout.prop(mytool, x)
 
-        split_7 = layout.split(factor=0.37)  
-        split_7.label(text="Install libraries")
-        split_7.operator(InstallLibrariesOperator.bl_idname, text="Choose TXT file                            ")
-        
-        split_1 = layout.split(factor=0.37) 
-        split_1.label(text="Selected model")
-        split_1.prop(mytool, "model")
-        
-        split_2 = layout.split(factor=0.37) 
-        split_2.label(text="Computing device")
-        split_2.prop(mytool, "device")
-        
-        split_3 = layout.split(factor=0.37) 
-        split_3.label(text="Post processing")
-        split_3.prop(mytool, "post_processing")
+        layout.separator()
 
-        split_4 = layout.split(factor=0.37) 
-        split_4.label(text="Create new object")
-        split_4.prop(mytool, "create_new")
+        layout.prop(mytool, "create_new")
+        layout.prop(mytool, "calculate_metrics")
 
-        split_77 = layout.split(factor=0.37) 
-        split_77.label(text="Calculate metrics")
-        split_77.prop(mytool, "calculate_metrics")
+        layout.separator()
+    
+        layout.operator(AddModelButtonOperator.bl_idname, text="Add model from directory")
+        layout.operator(DeleteModelButtonOperator.bl_idname, text="Delete selected model")
+        layout.operator(InstallLibrariesOperator.bl_idname, text="Install libraries from TXT")   
         
         layout.separator()
        
@@ -651,7 +672,7 @@ def register():
     bpy.utils.register_class(dope_sheet_generation_button)
     bpy.utils.register_class(dope_sheet_options_button)
     bpy.types.DOPESHEET_MT_context_menu.append(draw_buttons_in_dope_sheet)
-    
+
 # end function register
 
 def unregister():

@@ -103,8 +103,19 @@ class ModelInterface(GeneralInterface):
     
     # end function check_frames_range
 
+    def get_infer_anim_kwargs(self) -> list[tuple[type, str, str]]:
+        return [
+                (torch.device, "Device", "Select device to compute on"),
+                (bool, "Post processing", "Apply post processing on data")         
+            ]
+    
+    # end function get_infer_anim_kwargs
 
-    def infer_anim(self, anim_data, start_frame, end_frame, post_processing, device):
+
+    def infer_anim(self, anim_data, start_frame, end_frame, **kwargs):
+        device = kwargs.get("Device", "cpu") 
+        post_processing = kwargs.get("Post processing", False)
+
         offset = start_frame - 10
         trans = end_frame - start_frame + 1
         
