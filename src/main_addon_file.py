@@ -1,11 +1,25 @@
-# --- Instaling libraries for addon in Blender python instance if not installed
+# --- Function for showing info in blender
+
+import bpy
+
+def show_info(type, msg):
+    bpy.context.window_manager.popup_menu(
+        lambda self, context: self.layout.label(text=msg), 
+        title=type, 
+        icon=type
+    )
+
+# end show_info
+
+
+
+# --- Instaling libraries for addon in blender python instance if not installed
 
 import subprocess
 import sys
 import importlib
-import os
-import bpy
 import pathlib
+import os
 import json
 import platform 
 
@@ -14,7 +28,7 @@ modules_path = str(directory_path.parent.resolve())
 sys.path.append(modules_path)
 
 os_name = platform.system()
-req_path = str(directory_path) + str(os.sep) + "addon_requirements.txt"
+req_path = str(directory_path) + str(os.sep) + "config" + str(os.sep) + "addon_requirements.txt"
 
 def handle_pytorch3d_installation():
     try:
@@ -58,6 +72,8 @@ def handle_pytorch3d_installation():
     else:
         print("Pytorch3d already installed.")
         return True
+
+# end handle_pytorch3d_installation
 
 def handle_torch_installation():
     try:
@@ -116,6 +132,8 @@ def handle_torch_installation():
     else:
         print("Torch, torchvision and torchaudio already installed.")
         return True
+    
+# end handle_torch_installation
 
 installing = False
 with open(req_path, 'r', encoding='utf-8') as file:
@@ -135,11 +153,7 @@ with open(req_path, 'r', encoding='utf-8') as file:
         except ModuleNotFoundError: 
             if not installing: 
                 installing = True
-                bpy.context.window_manager.popup_menu(
-                    lambda self, context: self.layout.label(text="Started installing libraries."), 
-                    title="Info", 
-                    icon='INFO'
-                )
+                show_info("INFO", "Started installing libraries for addon. For more information refer to terminal.")
                 print("--- Updating PIP")
                 subprocess.check_call([sys.executable, '-m', 'pip', 'install', '--upgrade', 'pip'])
                 print("--- Installing libraries")
@@ -150,29 +164,67 @@ with open(req_path, 'r', encoding='utf-8') as file:
                 
 if installing:
     print("--- Done")
-    bpy.context.window_manager.popup_menu(
-        lambda self, context: self.layout.label(text="Done installing libraries."), 
-        title="Info", 
-        icon='INFO'
-   )
+    show_info("INFO", "Done installing libraries for addon.")
 
 
+
+# --- Downloading large files for models
+
+import requests
+import zipfile
+
+def download_and_extract_zip(target_dir, url):
+    zip_name = os.path.basename(url)
+    zip_path = os.path.join(target_dir, zip_name)
+    response = requests.get(url, stream=True)
+
+    if response.status_code == 200:
+        with open(zip_path, "wb") as f:
+            for chunk in response.iter_content(chunk_size=1024):
+                if chunk:
+                    f.write(chunk)
+        with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+            zip_ref.extractall(target_dir)
+        os.remove(zip_path)
+        show_info("INFO", "Successfully ended downloading file.")
+        print("Successfully ended downloading file.")
+    else:
+        show_info("ERROR", "Error while downloading file.")
+        print("Error while downloading file.")
+
+# end download_and_extract_zip
+
+target_dir = str(directory_path).removesuffix("src") + "models" +  str(os.sep) + "motion_inbetweening" + str(os.sep) + "datasets"
+target_dir += str(os.sep) + "lafan1"
+bvh_files = [f for f in os.listdir(target_dir) if f.endswith(".bvh")]
+if not bvh_files:
+    show_info("INFO", "Started downloading 137MB file.")
+    print("Started downloading 137MB file.")
+    url = "https://github.com/ubisoft/ubisoft-laforge-animation-dataset/raw/master/lafan1/lafan1.zip"
+    download_and_extract_zip(target_dir, url)
+
+target_dir = str(directory_path).removesuffix("src") + "models" +  str(os.sep) + "motion_inbetweening" + str(os.sep) + "experiments"
+bvh_files = [f for f in os.listdir(target_dir + str(os.sep) + "lafan1_context_model_release") if f.endswith(".pth")]
+if not bvh_files:
+    show_info("INFO", "Started downloading 204MB file.")
+    print("Started downloading 204MB file.")
+    url = "https://github.com/victorqin/motion_inbetweening/releases/download/v1.0.0/pre-treained.zip"
+    download_and_extract_zip(target_dir, url)
 
 # --- Addon imports 
 
 import torch
 
-import src.metrics as metrics
-
 from interface.general_interface import GeneralInterface
 
+import src.metrics as metrics
 from src.addon_functions import apply_transforms, get_anim_data
 from src.utils import copy_object, convert_array_3x3matrix_to_euler_zyx
 
+import bpy_extras
 from bpy.utils import register_class, unregister_class
 from bpy.types import PropertyGroup
 from bpy.props import IntProperty, PointerProperty, BoolProperty, EnumProperty, StringProperty, FloatProperty
-import bpy_extras
 
 sys.path.remove(modules_path)
 
@@ -185,7 +237,6 @@ def generate_anim(
     end_frame: int, 
     interface: GeneralInterface,
     create_new: bool,
-    obj_to_report: object,
     calculate_metrics: bool,
     **kwargs: dict
 ) -> set[str]:
@@ -194,6 +245,7 @@ def generate_anim(
     Function doing all stuff including using of model.
     '''
 
+    # blender things
     context = bpy.context
     scene = context.scene  
     scene_start_frame = scene.frame_start
@@ -201,29 +253,33 @@ def generate_anim(
     obj = context.object
 
     # check simple things
-    if obj is None or obj.type != 'ARMATURE':
-        obj_to_report.report({'ERROR'}, "Selected object must be armature.")
+    if obj is None or len(context.selected_objects) == 0:
+        show_info("ERROR", "No object selected.")
+        return {"CANCELLED"} 
+
+    if obj.type != 'ARMATURE':
+        show_info("ERROR", "Selected object must be armature.")
         return {"CANCELLED"} 
     
-    if len(context.selected_objects) != 1: 
-        obj_to_report.report({'ERROR'}, "Only 1 object can be selected.")
+    if len(context.selected_objects) > 1: 
+        show_info("ERROR", "Only 1 object can be selected.")
         return {"CANCELLED"}  
 
     if start_frame < scene_start_frame or end_frame > scene_end_frame or start_frame + 1 >= end_frame: 
-        obj_to_report.report({'ERROR'}, "Selected frames range is invalid.")
+        show_info("ERROR", "Selected frames range is invalid.")
         return {"CANCELLED"}
     
     # check if frames are correct in model - function from interface
     b, s = interface.check_frames_range(start_frame, end_frame, scene_start_frame, scene_end_frame)
     if b == False: 
-        obj_to_report.report({'ERROR'}, f"Selected frames range is invalid in model, {s}")
+        show_info("ERROR", f"Selected frame range is invalid for model, {s}")
         return {"CANCELLED"} 
     
     # load anim data
     try: 
         anim = get_anim_data(obj)
     except Exception as e: 
-        obj_to_report.report({'ERROR'}, f"Error with loading animation data, {e}.")
+        show_info("ERROR", f"Error with loading animation data, {e}.")
         return {"CANCELLED"} 
 
     # infer results from ai model - function from interface
@@ -232,7 +288,7 @@ def generate_anim(
         inferred_pos, inferred_rot = interface.infer_anim(anim, start_frame, end_frame, **kwargs)
         print("--- End of model infer anim logs")
     except Exception as e: 
-        obj_to_report.report({'ERROR'}, f"Error with using model, {e}.")
+        show_info("ERROR", f"Error with using model, {e}.")
         return {"CANCELLED"} 
     
     # copy object
@@ -240,28 +296,28 @@ def generate_anim(
         if create_new: new_obj = copy_object(obj, context)
         else: new_obj = obj
     except Exception as e: 
-        obj_to_report.report({'ERROR'}, f"Error while copying object, {e}.")
+        show_info("ERROR", f"Error while copying object, {e}.")
         return {"CANCELLED"} 
 
     # convert original rotation to ZYX Euler angles
     try:
         original_rot = convert_array_3x3matrix_to_euler_zyx(anim["rotations"])
     except Exception as e: 
-        obj_to_report.report({'ERROR'}, f"Error with animation data, {e}.")
+        show_info("ERROR", f"Error with animation data, {e}.")
         return {"CANCELLED"} 
 
     # apply new transforms
     try:
         apply_transforms(
-        new_obj,
-        true_original_pos=anim["positions"], 
-        true_inferred_pos=inferred_pos, 
-        true_original_rot=original_rot, 
-        true_inferred_rot=inferred_rot, 
-        offset=start_frame 
+            new_obj,
+            true_original_pos=anim["positions"], 
+            true_inferred_pos=inferred_pos, 
+            true_original_rot=original_rot, 
+            true_inferred_rot=inferred_rot, 
+            offset=start_frame 
         )
     except Exception as e: 
-        obj_to_report.report({'ERROR'}, f"Error while applying new animation to object, {e}.")
+        show_info("ERROR", f"Error while applying new animation to object, {e}.")
         return {"CANCELLED"} 
     
     # calculate metrics
@@ -293,12 +349,17 @@ bl_info = {
     "category" : "",
 } 
 
+# Global variables
 selected_model : GeneralInterface = None
 selected_device : str = None
-our_model_num = 2
-selected_model_index = 0
+selected_model_index  : int = 0
+addon_model_count : int = 0
 current_kwargs_attributes = []
 device_arg_name = ""
+
+with open(directory_path / "config" / "model_paths.json", "r") as file:
+    data = json.load(file)
+    addon_model_count = data["addon_model_count"]
 
 def select_ai_model(index):  
     try:
@@ -325,15 +386,16 @@ def get_ai_models_dropdown(self, context):
 # end function get_ai_models_dropdown
 
 def get_ai_models():
-    models = []
+    models = [] 
     i = 0
-    for model in json.load(open(directory_path / "model_paths.json"))["model_paths"]:
+    for model in json.load(open(directory_path / "config" / "model_paths.json"))["model_paths"]:
         models.append((str(i), model["name"], model["path"]))
         model_path = pathlib.Path(model["path"])
         if not os.path.isabs(model_path):
             model_path = pathlib.Path(modules_path) / model_path
         sys.path.append(str(model_path.parent.resolve()))
         i += 1
+    
     return models
 
 # end function get_ai_models
@@ -363,19 +425,50 @@ def select_device(self, context):
     selected_device = get_device_list(self, context)[int(getattr(self, device_arg_name))][2]
 
 # end function select_device
+
+def format_bvh_name(filename):
+    filename = filename.removesuffix(".bvh")
+    filename = filename.replace("_", " ").capitalize()
+    return filename
+
+# end format_bvh_name
+
+sample_bvh_path = str(directory_path).removesuffix("src") + "sample_bvh_files"
+def sample_bvh_files_enum(self, context):
+    files = [f for f in os.listdir(sample_bvh_path) if f.endswith(".bvh")]
+    return sorted([(f, format_bvh_name(f), f) for f in files], key=lambda x: x[2], reverse=True)
+         
+# end sample_bvh_files_enum
+
+def get_scene_objects_enum(self, context):
+    return [(obj.name, obj.name, obj.name) for obj in bpy.context.scene.objects if obj.type == 'ARMATURE']
+
+# end get_scene_objects_enum
                                                         
 class GenerationProperties(PropertyGroup): 
     start_frame : IntProperty(name = "Start frame", default = 0, min = 0)
     end_frame : IntProperty(name = "End frame", default = 0, min = 0)
-    model: EnumProperty(
+    model : EnumProperty(
         name="AI model",
         description="Select model for generating frames",
         items=get_ai_models_dropdown,
         update=select_ai_model_dropdown,
         default=0
     )
+    bvh_file_name : EnumProperty(
+        name="BVH file",
+        items=sample_bvh_files_enum,
+        description="Select sample BVH file to import",
+        default=0
+    )
+    fbx_export_object : EnumProperty(
+        name="Object name",
+        description="Select object to export to FBX",
+        items=get_scene_objects_enum,
+        default=0
+    )
     create_new : BoolProperty(name = "  Create new object", default = True)
-    calculate_metrics: BoolProperty(name = "  Calculate metrics", default = True)
+    calculate_metrics: BoolProperty(name = "  Calculate metrics", default = False)
 
     def update_properties(self, context): 
         global current_kwargs_attributes
@@ -388,7 +481,7 @@ class GenerationProperties(PropertyGroup):
             for var_type, var_name, var_desc in kwargs_list:
                 if var_type == torch.device and not device_added:
                     setattr(GenerationProperties, var_name, EnumProperty(
-                        name= var_name,
+                        name=var_name,
                         description=var_desc,
                         items=get_device_list,
                         update=select_device,
@@ -428,53 +521,106 @@ class GenerationProperties(PropertyGroup):
                     current_kwargs_attributes.append(var_name)
 
 # end class GenerationProperties
+
+def get_selected_keyframes():
+    context = bpy.context
+    obj = context.object
+
+    if obj is None or len(context.selected_objects) == 0:
+        show_info("ERROR", "No object selected.")
+        return {"CANCELLED"} 
+
+    if obj.type != 'ARMATURE':
+        show_info("ERROR", "Selected object must be armature.")
+        return {"CANCELLED"} 
+    
+    if len(context.selected_objects) > 1: 
+        show_info("ERROR", "Only 1 object can be selected.")
+        return {"CANCELLED"}  
+    
+    selected_frames = []
+    action = bpy.context.object.animation_data.action  # Active action
+    
+    if action:
+        for fcurve in action.fcurves:
+            for keyframe in fcurve.keyframe_points:
+                if keyframe.select_control_point:  
+                    selected_frames.append(int(keyframe.co.x))
+
+    return sorted(set(selected_frames))  
+
+# end function get_selected_keyframes
+
+def process_generation():
+    mt = bpy.context.scene.my_tool
+    kwargs = dict()
+
+    if selected_model is not None:
+        kwargs_list = selected_model.get_infer_anim_kwargs()
+        for t, n, d in kwargs_list:
+            if t == torch.device: kwargs[n] = selected_device
+            else: kwargs[n] = getattr(mt, n) 
+
+    return generate_anim(mt.start_frame, mt.end_frame, selected_model, mt.create_new, mt.calculate_metrics, **kwargs)   
+
+# end process_generation
      
 class GenerationButtonOperator(bpy.types.Operator):
     bl_idname = "plugin.generation_button"
-    bl_label = "plugin"
+    bl_label = "Generate frames"
 
     def execute(self, context):
-        mt = bpy.context.scene.my_tool
-        kwargs = dict()
-        if selected_model is not None:
-            kwargs_list = selected_model.get_infer_anim_kwargs()
-            for t, n, d in kwargs_list:
-                if t == torch.device: kwargs[n] = selected_device
-                else: kwargs[n] = getattr(mt, n) 
-
-        return generate_anim(mt.start_frame, mt.end_frame, selected_model, mt.create_new, self, mt.calculate_metrics, **kwargs)
-         
+       return process_generation()
+  
 # end class GenerateButtonOperator
+
+class dope_sheet_generation_button(bpy.types.Operator):
+    bl_idname = "dope.dope_sheet_generation_button"
+    bl_label = "Generate frames"
+    
+    def execute(self, context):
+        selected_frames = get_selected_keyframes()
+        if len(selected_frames) != 2 or selected_frames[0] + 1 == selected_frames[1]:
+            show_info("ERROR", "Wrong frame range selected.")
+            return {"CANCELLED"} 
+        else:
+            mt = bpy.context.scene.my_tool
+            mt.start_frame, mt.end_frame = selected_frames[0], selected_frames[1]
+            return process_generation()
+
+# end class dope_sheet_generation_button  
 
 class AddModelButtonOperator(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
     bl_idname = "plugin.add_model_button"
-    bl_label = "plugin"
+    bl_label = "Add model"
 
     filename_ext = ".py"
     filter_glob: bpy.props.StringProperty(default="*.py", options={'HIDDEN'})
 
     def execute(self, context):
-        with open(directory_path / "model_paths.json", "r") as file:
+        with open(directory_path / "config" /  "model_paths.json", "r") as file:
             models = json.load(file)
         try:
             path = pathlib.Path(self.filepath)
             models["model_paths"].append({"name": str(path.stem), "path": str(path.parent.resolve() / path.stem)})
         except Exception as e:
-            self.report({'ERROR'}, f"Someting went wrong while adding model, {e}.")
+            show_info("ERROR", f"Someting went wrong while adding model, {e}.")
             return {"CANCELLED"} 
         
-        with open(directory_path / "model_paths.json", "w") as file:
+        with open(directory_path / "config" / "model_paths.json", "w") as file:
             file.write(json.dumps(models, indent=4))
         try:   
             select_ai_model((len(get_ai_models_dropdown(self, context)) - 1))
         except Exception as e:
-            with open(directory_path / "model_paths.json", "r") as file:
+            with open(directory_path / "config" / "model_paths.json", "r") as file:
                 models = json.load(file)
             del models["model_paths"][len(models["model_paths"]) - 1]
-            with open(directory_path / "model_paths.json", "w") as file:
+            with open(directory_path / "config" / "model_paths.json", "w") as file:
                 json.dump(models, file, indent=4)
-            self.report({'ERROR'}, f"Someting went wrong while adding model, {e}.")
+                show_info("ERROR", f"Someting went wrong while adding model, {e}.")
             return {"CANCELLED"} 
+        
+        show_info("INFO", "Model added succesfully.")
         return {"FINISHED"}
          
 # end class AddModelButtonOperator
@@ -487,6 +633,7 @@ class InstallLibrariesOperator(bpy.types.Operator, bpy_extras.io_utils.ImportHel
     filter_glob: bpy.props.StringProperty(default="*.txt", options={'HIDDEN'})
 
     def execute(self, context):
+        show_info("INFO", "Started installing libraries from TXT. ")
         print("--- Updating PIP")
         subprocess.check_call([sys.executable, '-m', 'pip', 'install', '--upgrade', 'pip'])
 
@@ -519,10 +666,12 @@ class InstallLibrariesOperator(bpy.types.Operator, bpy_extras.io_utils.ImportHel
                     not_installed.append(x)
 
         if len(not_installed) > 0:
+            show_info("ERROR", "Some libraries weren't successfully installed. For more information refer to terminal.")
             print("--- Not installed libraries")
             for x in not_installed: print(x)
             print("--- End")
         else:
+            show_info("INFO", "Successfully installed all libraries.")
             print("--- Successfully installed all libraries")
 
         return {"FINISHED"}
@@ -531,22 +680,118 @@ class InstallLibrariesOperator(bpy.types.Operator, bpy_extras.io_utils.ImportHel
 
 class DeleteModelButtonOperator(bpy.types.Operator):
     bl_idname = "plugin.delete_model_button"
-    bl_label = "plugin"
+    bl_label = "Delete selected model"
 
     def execute(self, context):
-        if selected_model_index < our_model_num:
-            self.report({'ERROR'}, "Can't delete premade models.")
+        if selected_model_index < addon_model_count:
+            show_info("ERROR", "Can't delete premade models.")
             return {"CANCELLED"} 
         else:
-            with open(directory_path / "model_paths.json", "r") as file:
+            with open(directory_path / "config" / "model_paths.json", "r") as file:
                 models = json.load(file)
             del models["model_paths"][selected_model_index]
-            with open(directory_path / "model_paths.json", "w") as file:
+            with open(directory_path / "config" / "model_paths.json", "w") as file:
                 json.dump(models, file, indent=4)
+
             select_ai_model(0)
-        return {"FINISHED"}
-         
+            show_info("INFO", "Deleted model succesfully.")
+            return {"FINISHED"}
+        
 # end class DeleteModelButtonOperator
+
+class ImportBVHButton(bpy.types.Operator):
+    bl_idname = "import_scene.bvh_file"
+    bl_label = "Import"  
+
+    def execute(self, context):
+        mt = bpy.context.scene.my_tool
+        selected_file = mt.bvh_file_name
+        if selected_file:
+            file_path = os.path.join(sample_bvh_path, selected_file)
+            try:
+                bpy.ops.import_anim.bvh(filepath=file_path)
+            except Exception as e:
+                show_info("ERROR", f"Error while importing BVH file, {e}")
+                return {'CANCELLED'}
+            else:
+                show_info("INFO", "BVH file imported successfully.")
+                return {'FINISHED'}
+        else:
+            show_info("ERROR", "BVH file to import not selected.")
+            return {'CANCELLED'}
+
+# end ImportBVHButton
+
+class OpenBVHIportMenu(bpy.types.Operator):
+    bl_idname = "import_scene.import_popup"
+    bl_label = "Import sample BVH file"
+
+    def draw(self, context):
+        layout = self.layout
+        scene = context.scene  
+        mytool = scene.my_tool
+
+        layout.prop(mytool, "bvh_file_name")
+        layout.operator(ImportBVHButton.bl_idname, text="Import selected BVH file")
+
+    def execute(self, context):
+        return context.window_manager.invoke_popup(self)
+    
+# end OpenBVHIportMenu
+
+class ExportFBXButton(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
+    bl_idname = "export_scene.fbx_file"
+    bl_label = "Export"
+    
+    filename_ext = ".fbx"
+    filter_glob: StringProperty(default="*.fbx", options={'HIDDEN'})
+
+    def execute(self, context):
+        mt = bpy.context.scene.my_tool
+        selected_object_name = mt.fbx_export_object
+
+        if selected_object_name:
+            selected_object = bpy.context.scene.objects.get(selected_object_name)
+            if selected_object:
+                original_selection = [obj for obj in bpy.context.selected_objects]
+                bpy.ops.object.select_all(action='DESELECT')
+                selected_object.select_set(True)
+                file_path = self.filepath  
+                try:
+                    bpy.ops.export_scene.fbx(filepath=file_path)
+                    show_info("INFO", f"Successfully exported {selected_object_name} to {file_path}.")
+                    return {'FINISHED'}
+                except Exception as e:
+                    show_info("ERROR", f"Error while exporting FBX file, {e}")
+                    return {'CANCELLED'}
+                finally:
+                    bpy.ops.object.select_all(action='DESELECT')
+                    for obj in original_selection: obj.select_set(True)
+            else:
+                show_info("ERROR", "No object selected for export.")
+                return {'CANCELLED'}
+        else:
+            show_info("ERROR", "No object selected for export.")
+            return {'CANCELLED'}
+
+# end ExportFBXButton
+
+class OpenFBXExportMenu(bpy.types.Operator):
+    bl_idname = "export_scene.export_popup"
+    bl_label = "Export FBX File"
+
+    def draw(self, context):
+        layout = self.layout
+        scene = context.scene
+        mytool = scene.my_tool
+
+        layout.prop(mytool, "fbx_export_object")
+        layout.operator(ExportFBXButton.bl_idname, text="Export selected object to FBX file")
+
+    def execute(self, context):
+        return context.window_manager.invoke_popup(self)
+    
+# end OpenFBXExportMenu
        
 class PLUGIN_PT_GenerationPanel(bpy.types.Panel):
     bl_label = "Addon"
@@ -575,6 +820,13 @@ class PLUGIN_PT_GenerationPanel(bpy.types.Panel):
         layout.separator()
         layout.separator()
         layout.separator()
+
+        layout.operator(OpenBVHIportMenu.bl_idname, text="Import sample BVH file")
+        layout.operator(OpenFBXExportMenu.bl_idname, text="Export object to FBX file")
+
+        layout.separator()
+        layout.separator()
+        layout.separator()
               
         layout.prop(mytool, "start_frame")
         layout.prop(mytool, "end_frame")   
@@ -585,47 +837,10 @@ class PLUGIN_PT_GenerationPanel(bpy.types.Panel):
         
 # end class GeneratePanel
 
-def get_selected_keyframes():
-    selected_frames = []
-    action = bpy.context.object.animation_data.action  # Active action
-    
-    if action:
-        for fcurve in action.fcurves:
-            for keyframe in fcurve.keyframe_points:
-                if keyframe.select_control_point:  
-                    selected_frames.append(int(keyframe.co.x))
-
-    return sorted(set(selected_frames))  
-
-# end function get_selected_keyframes
-
-class dope_sheet_generation_button(bpy.types.Operator):
-    bl_idname = "dope.dope_sheet_generation_button"
-    bl_label = "Generate frames"
-    
-    def execute(self, context):
-        selected_frames = get_selected_keyframes()
-        if len(selected_frames) != 2 or selected_frames[0] + 1 == selected_frames[1]:
-            self.report({'ERROR'}, "Wrong frames range selected.")
-            return {"CANCELLED"} 
-        else:
-            mt = bpy.context.scene.my_tool
-            mt.start_frame, mt.end_frame = selected_frames[0], selected_frames[1]
-            kwargs = dict()
-            if selected_model is not None:
-                kwargs_list = selected_model.get_infer_anim_kwargs()
-                for t, n, d in kwargs_list:
-                    if t == torch.device: kwargs[n] = selected_device
-                    else: kwargs[n] = getattr(mt, n) 
-
-            return generate_anim(mt.start_frame, mt.end_frame, selected_model, mt.create_new, self, mt.calculate_metrics, **kwargs)
-
-# end class dope_sheet_generation_button  
-
 class dope_sheet_options_button(bpy.types.Operator):
     bl_idname = "dope.dope_sheet_options_button"
     bl_label = "Generation options"
-    bl_description = "Opens model generation options"
+    bl_description = "Opens addon generation options"
     
     def execute(self, context):
         return context.window_manager.invoke_popup(self)
@@ -655,38 +870,94 @@ class dope_sheet_options_button(bpy.types.Operator):
        
 # end class dope_sheet_options_button
 
+class dope_sheet_import_button(bpy.types.Operator):
+    bl_idname = "dope.dope_sheet_import_button"
+    bl_label = "Import sample BVH"
+    bl_description = "Import on of sammple BVH files"
+    
+    def execute(self, context):
+        return context.window_manager.invoke_popup(self)
+
+    def draw(self, context):
+        layout = self.layout
+        scene = context.scene  
+        mytool = scene.my_tool
+
+        layout.separator()  
+        
+        layout.prop(mytool, "bvh_file_name")
+        layout.operator(ImportBVHButton.bl_idname, text="Import selected BVH file")
+
+        layout.separator()  
+       
+       
+# end class dope_sheet_import_button
+
+class dope_sheet_export_button(bpy.types.Operator):
+    bl_idname = "dope.dope_sheet_export_button"
+    bl_label = "Export to FBX"
+    bl_description = "Export object to FBX file"
+    
+    def execute(self, context):
+        return context.window_manager.invoke_popup(self)
+
+    def draw(self, context):
+        layout = self.layout
+        scene = context.scene
+        mytool = scene.my_tool
+
+        layout.separator()  
+
+        layout.prop(mytool, "fbx_export_object")
+        layout.operator(ExportFBXButton.bl_idname, text="Export selected object to FBX file")
+
+        layout.separator()  
+       
+# end class dope_sheet_export_button
+
 def draw_buttons_in_dope_sheet(self, context):
     layout = self.layout
     layout.separator()  
     layout.operator(dope_sheet_generation_button.bl_idname, text="Generate frames")
     layout.operator(dope_sheet_options_button.bl_idname, text="Generation options")
+    layout.operator(dope_sheet_import_button.bl_idname, text="Import sample BVH")
+    layout.operator(dope_sheet_export_button.bl_idname, text="Export object to FBX")
 
 # end function draw_buttons_in_dope_sheet
 
-generation_window_classes = [InstallLibrariesOperator, AddModelButtonOperator, GenerationButtonOperator, PLUGIN_PT_GenerationPanel, GenerationProperties, DeleteModelButtonOperator]
+classes_to_register = [
+        InstallLibrariesOperator, 
+        AddModelButtonOperator, 
+        GenerationButtonOperator, 
+        PLUGIN_PT_GenerationPanel, 
+        GenerationProperties, 
+        DeleteModelButtonOperator,
+        dope_sheet_generation_button,
+        dope_sheet_options_button,
+        ImportBVHButton,
+        OpenBVHIportMenu,
+        ExportFBXButton,
+        OpenFBXExportMenu,
+        dope_sheet_import_button,
+        dope_sheet_export_button
+    ]
 
 def register():
-    for x in generation_window_classes: register_class(x)  
+    for x in classes_to_register: register_class(x)  
     bpy.types.Scene.my_tool = PointerProperty(type=GenerationProperties)
-    
-    bpy.utils.register_class(dope_sheet_generation_button)
-    bpy.utils.register_class(dope_sheet_options_button)
     bpy.types.DOPESHEET_MT_context_menu.append(draw_buttons_in_dope_sheet)
 
 # end function register
 
 def unregister():
-    for x in generation_window_classes: unregister_class(x)
+    for x in classes_to_register: unregister_class(x)
     del bpy.types.Scene.my_tool
-
-    bpy.utils.unregister_class(dope_sheet_generation_button)
-    bpy.utils.unregister_class(dope_sheet_options_button)
     bpy.types.DOPESHEET_MT_context_menu.remove(draw_buttons_in_dope_sheet)
     
 # end function unregister
     
 if __name__ == "__main__":   
-    register()    
+    register()   
     select_ai_model(0)
     selected_device = "cpu"   
     

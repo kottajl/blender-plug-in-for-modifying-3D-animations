@@ -1,7 +1,6 @@
 from typing import Optional
 import bpy
 import math
-# import mathutils
 
 
 def calculate_metrics(

@@ -6,7 +6,8 @@ class GeneralInterface(ABC):
     def check_frames_range() -> tuple[bool, str]:
 
         '''
-        Check if the frames range is valid to generate propely frames in current model.
+        Check if frame range is valid to generate propely frames in current model, returns (True, "") if yes,
+        or (False, <error message>) if not.
         '''
 
         pass
@@ -15,7 +16,7 @@ class GeneralInterface(ABC):
     def get_infer_anim_kwargs() -> list[tuple[type, str, str]]:
 
         '''
-        Return kwargs as list with tuples (variable type, name, description).
+        Returns list with tuples (type, name, description) for every variable in kwargs for infer_anim().
         '''
 
         pass
@@ -24,7 +25,7 @@ class GeneralInterface(ABC):
     def infer_anim() -> tuple[list, list]:
 
         '''
-        Infer the animation data.
+        Infer the animation data, returns (inferred positions, inferred rotations) for in-between frames.
         '''
 
         pass

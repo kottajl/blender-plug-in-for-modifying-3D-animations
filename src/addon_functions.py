@@ -1,8 +1,8 @@
 import numpy as np
 from math import radians
+from mathutils import Euler, Matrix, Vector
 
 import bpy
-from mathutils import Euler, Matrix, Vector
 from bpy.utils import escape_identifier
 from bpy.types import Object, Armature
 

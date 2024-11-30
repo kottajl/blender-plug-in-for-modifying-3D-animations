@@ -18,19 +18,26 @@ from motion_inbetween.train import context_model as ctx_mdl, detail_model as det
 
 sys.path.remove(str(packages_path))
 
-def matrix9D_to_euler_angles(mat):
-    quat_data = matrix9D_to_quat_torch(mat)
-    quat_data = remove_quat_discontinuities(quat_data)
-    rotations = Rotation.from_quat(quat_data.cpu().numpy().flatten().reshape((-1, 4)))
-    return rotations.as_euler('ZYX', degrees=True).reshape(1, -1, mat.shape[2], 3)
-
-# end function matrix9D_to_euler_angles
-  
 class ModelInterface(GeneralInterface):
 
     '''
     Implementation of Motion Inbetweening model.
     '''
+
+    def check_frames_range(self, start_frame, end_frame, scene_start_frame, scene_end_frame) -> tuple[bool, str]:
+        if start_frame < scene_start_frame + 10:  return (False, "Must be at least 10 frames before selected range.") 
+        if end_frame + 2 > scene_end_frame:  return (False, "Must be at least 2 frames after selected range.") 
+        return (True, "")
+    
+    # end function check_frames_range
+
+    def get_infer_anim_kwargs(self) -> list[tuple[type, str, str]]:
+        return [
+                (torch.device, "Device", "Select device to compute on"),
+                (bool, "Post processing", "Apply post processing on inferred data")         
+            ]
+    
+    # end function get_infer_anim_kwargs
 
     class BlenderDataSetSingle(torch.utils.data.Dataset):
         
@@ -95,27 +102,18 @@ class ModelInterface(GeneralInterface):
         
     # end class BlenderDataSetSingle
 
+    def matrix9D_to_euler_angles(self, mat):
+        quat_data = matrix9D_to_quat_torch(mat)
+        quat_data = remove_quat_discontinuities(quat_data)
+        rotations = Rotation.from_quat(quat_data.cpu().numpy().flatten().reshape((-1, 4)))
+        return rotations.as_euler('ZYX', degrees=True).reshape(1, -1, mat.shape[2], 3)
 
-    def check_frames_range(self, start_frame, end_frame, scene_start_frame, scene_end_frame) -> bool:
-        if start_frame < scene_start_frame + 10:  return (False, "Must be at least 10 frames before selected range.") 
-        if end_frame + 2 > scene_end_frame:  return (False, "Must be at least 2 frames after selected range.") 
-        return (True, "")
-    
-    # end function check_frames_range
-
-    def get_infer_anim_kwargs(self) -> list[tuple[type, str, str]]:
-        return [
-                (torch.device, "Device", "Select device to compute on"),
-                (bool, "Post processing", "Apply post processing on data")         
-            ]
-    
-    # end function get_infer_anim_kwargs
-
+    # end function matrix9D_to_euler_angles
 
     def infer_anim(self, anim_data, start_frame, end_frame, **kwargs):
+        # Model arguments
         device = kwargs.get("Device", "cpu") 
         post_processing = kwargs.get("Post processing", False)
-
         offset = start_frame - 10
         trans = end_frame - start_frame + 1
         
@@ -217,7 +215,7 @@ class ModelInterface(GeneralInterface):
         )
         
         # change inferred results from matrices to euler    
-        true_inferred_rot_euler = matrix9D_to_euler_angles(true_inferred_rot)
+        true_inferred_rot_euler = self.matrix9D_to_euler_angles(true_inferred_rot)
         
         return true_inferred_pos[0][10:-2], true_inferred_rot_euler[0][10:-2]
     

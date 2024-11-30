@@ -8,5 +8,6 @@
             "name": "Linear interpolation",
             "path": "models/linear_interpolation/linear_interpolation"
         }
-    ]
+    ],
+    "addon_model_count": 2
 }
