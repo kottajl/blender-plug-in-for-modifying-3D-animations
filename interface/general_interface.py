@@ -30,4 +30,20 @@ class GeneralInterface(ABC):
 
         pass
 
+    @abstractmethod
+    def infer_anim() -> tuple[list, list]:
+        '''
+        Infer the animation data, returns (inferred positions, inferred rotations) for in-between frames.
+        '''
+
+        pass
+
+    @abstractmethod
+    def is_skeleton_supported() -> bool:
+        '''
+        Check if the given skeleton is supported by the model, if this function returns false frame generation
+        will be aborted.
+        '''
+        pass
+
 # GeneralInterface
