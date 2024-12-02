@@ -1002,11 +1002,11 @@ class ExportMetricsButton(bpy.types.Operator):
 
 def draw_buttons_in_dope_sheet(self, context):
     layout = self.layout
-    layout.separator()  
-    layout.operator(dope_sheet_generation_button.bl_idname, text="Generate frames")
-    layout.operator(dope_sheet_options_button.bl_idname, text="Generation options")
-    layout.operator(dope_sheet_import_button.bl_idname, text="Import sample BVH")
-    layout.operator(dope_sheet_export_button.bl_idname, text="Export object to FBX")
+    layout.separator()
+    layout.operator(dope_sheet_generation_button.bl_idname, text="Generate frames", icon="SHADERFX")
+    layout.operator(dope_sheet_options_button.bl_idname, text="Generation options", icon="SETTINGS")
+    layout.operator(dope_sheet_import_button.bl_idname, text="Import sample BVH", icon="FILE_NEW")
+    layout.operator(dope_sheet_export_button.bl_idname, text="Export object to FBX", icon="IMPORT")
 
 # end function draw_buttons_in_dope_sheet
 
