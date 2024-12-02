@@ -219,7 +219,7 @@ from interface.general_interface import GeneralInterface
 
 import src.metrics as metrics
 from src.addon_functions import apply_transforms, get_anim_data
-from src.utils import copy_object, convert_array_3x3matrix_to_euler_zyx
+from src.utils import copy_object, convert_array_3x3matrix_to_euler_zyx, has_missing_keyframes_between, export_dict_to_file
 
 import bpy_extras
 from bpy.utils import register_class, unregister_class
@@ -322,12 +322,19 @@ def generate_anim(
     
     # calculate metrics
     if calculate_metrics:
-        print(metrics.calculate_metrics(
-            orginal_obj=obj, 
+        global generated_metrics
+
+        # If we are creating a new object and it has no missing keyframes between start and end frame, we can calculate comparative metrics.
+        # Otherwise we calculate only non-comparative metrics on the generated object.
+        original_obj_param = obj if create_new and not has_missing_keyframes_between(obj, (start_frame, end_frame)) else None
+
+        generated_metrics = metrics.calculate_metrics(
+            orginal_obj=original_obj_param, 
             generated_obj=new_obj, 
             start_frame=start_frame, 
             end_frame=end_frame
-        ))
+        )
+        bpy.ops.metrics.metrics_output_window('INVOKE_DEFAULT')
 
     return {"FINISHED"}
 
@@ -356,6 +363,7 @@ selected_model_index  : int = 0
 addon_model_count : int = 0
 current_kwargs_attributes = []
 device_arg_name = ""
+generated_metrics: dict = {}
 
 with open(directory_path / "config" / "model_paths.json", "r") as file:
     data = json.load(file)
@@ -873,7 +881,7 @@ class dope_sheet_options_button(bpy.types.Operator):
 class dope_sheet_import_button(bpy.types.Operator):
     bl_idname = "dope.dope_sheet_import_button"
     bl_label = "Import sample BVH"
-    bl_description = "Import on of sammple BVH files"
+    bl_description = "Import sample BVH files"
     
     def execute(self, context):
         return context.window_manager.invoke_popup(self)
@@ -915,6 +923,83 @@ class dope_sheet_export_button(bpy.types.Operator):
        
 # end class dope_sheet_export_button
 
+class MetricsOutputWindow(bpy.types.Operator):
+    bl_idname = "metrics.metrics_output_window"
+    bl_label = "Generated metrics"
+
+    def execute(self, context):
+        return {'FINISHED'}
+
+    def invoke(self, context, event):
+        return context.window_manager.invoke_props_dialog(self)
+
+    def draw(self, context):
+        layout = self.layout
+        
+        layout.separator()
+
+        global generated_metrics
+        for key, value in generated_metrics.items():
+            layout.label(text=f"{key}: {value}")
+
+        layout.separator()
+        layout.operator(ExportMetricsButton.bl_idname, text="Export to file")
+
+# end class MetricsOutputWindow
+
+class ExportMetricsButton(bpy.types.Operator):
+    bl_idname = "metrics.export_metrics_button"
+    bl_label = "Export metrics"
+    bl_description = "Export metrics data to file"
+
+    file_format: bpy.props.EnumProperty(
+        name="File Format",
+        description="Choose the file format",
+        items=[
+            ('TXT', "Text File (.txt)", "Save metrics data as a text file"),
+            ('JSON', "JSON File (.json)", "Save metrics data as a JSON file"),
+            ('CSV', "CSV File (.csv)", "Save metrics data as a CSV file")
+        ],
+        default='TXT'
+    )
+
+    filepath: bpy.props.StringProperty(subtype="FILE_PATH")
+    default_filename: str = "metrics_output.txt"
+
+    def execute(self, context):
+        try:
+            global generated_metrics
+
+            # Set the right name and extension
+            filename, file_extension = os.path.splitext(self.filepath)
+            if file_extension[1:].lower() != self.file_format.lower():
+                filename += file_extension
+
+            export_dict_to_file(
+                data=generated_metrics, 
+                filename=filename, 
+                export_type=self.file_format
+            )
+
+            show_info("INFO", f"Metrics data successfully exported to file.")
+
+        except Exception as e:
+            show_info("ERROR", f"Error while exporting metrics data to file, {e}")
+            return {'CANCELLED'}
+        
+        return {'FINISHED'}
+        
+    def draw(self, context):
+        layout = self.layout
+        layout.prop(self, "file_format", text="File Format")
+    
+    def invoke(self, context, event):
+        self.filepath = os.path.join(os.path.dirname(self.filepath), self.default_filename)
+        context.window_manager.fileselect_add(self)
+        return {'RUNNING_MODAL'}
+
+# end class ExportMetricsButton
+
 def draw_buttons_in_dope_sheet(self, context):
     layout = self.layout
     layout.separator()  
@@ -939,7 +1024,9 @@ classes_to_register = [
         ExportFBXButton,
         OpenFBXExportMenu,
         dope_sheet_import_button,
-        dope_sheet_export_button
+        dope_sheet_export_button,
+        MetricsOutputWindow,
+        ExportMetricsButton
     ]
 
 def register():
@@ -956,9 +1043,9 @@ def unregister():
     
 # end function unregister
     
-if __name__ == "__main__":   
-    register()   
+if __name__ == "__main__":
+    register()
     select_ai_model(0)
-    selected_device = "cpu"   
-    
+    selected_device = "cpu"
+
 # end main

@@ -30,12 +30,13 @@ class GeneralInterface(ABC):
 
         pass
 
-    @abstractmethod
-    def is_skeleton_supported() -> bool:
-        '''
-        Check if the given skeleton is supported by the model, if this function returns false frame generation
-        will be aborted.
-        '''
-        pass
+    # TODO: Implement this function in both base models (i had to comment it for now due to an error when running the script)
+    # @abstractmethod
+    # def is_skeleton_supported() -> bool:
+    #     '''
+    #     Check if the given skeleton is supported by the model, if this function returns false frame generation
+    #     will be aborted.
+    #     '''
+    #     pass
 
 # GeneralInterface
