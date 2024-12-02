@@ -3,7 +3,9 @@ from abc import ABC, abstractmethod
 class GeneralInterface(ABC):
 
     @abstractmethod
-    def check_frames_range() -> tuple[bool, str]:
+    def check_frames_range(self, start_frame: int, end_frame: int, 
+                           scene_start_frame: int, scene_end_frame: int
+    ) -> tuple[bool, str]:
 
         '''
         Check if frame range is valid to generate propely frames in current model, returns (True, "") if yes,
@@ -13,16 +15,17 @@ class GeneralInterface(ABC):
         pass
 
     @abstractmethod
-    def get_infer_anim_kwargs() -> list[tuple[type, str, str]]:
-
+    def get_additional_infer_params(self) -> list[tuple[type, str, str]]:
+        
         '''
-        Returns list with tuples (type, name, description) for every variable in kwargs for infer_anim().
+        Returns list with tuples (type, name, description) for every additional parameter that is required for 
+        the inferring animation process. Those parameters should be later passed to infer_anim() as kwargs.
         '''
 
         pass
 
     @abstractmethod
-    def infer_anim() -> tuple[list, list]:
+    def infer_anim(self, anim_data, start_frame: int, end_frame: int, **kwargs) -> tuple[list, list]:
 
         '''
         Infer the animation data, returns (inferred positions, inferred rotations) for in-between frames.
@@ -30,13 +33,14 @@ class GeneralInterface(ABC):
 
         pass
 
-    # TODO: Implement this function in both base models (i had to comment it for now due to an error when running the script)
-    # @abstractmethod
-    # def is_skeleton_supported() -> bool:
-    #     '''
-    #     Check if the given skeleton is supported by the model, if this function returns false frame generation
-    #     will be aborted.
-    #     '''
-    #     pass
+    @abstractmethod
+    def is_skeleton_supported(self, skeleton: tuple[str, int]) -> bool:
+
+        '''
+        Check if the given skeleton is supported by the model, if this function returns false frame generation
+        will be aborted.
+        '''
+
+        pass
 
 # GeneralInterface

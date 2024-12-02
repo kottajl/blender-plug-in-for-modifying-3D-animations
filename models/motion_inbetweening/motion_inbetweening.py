@@ -31,7 +31,7 @@ class ModelInterface(GeneralInterface):
     
     # end function check_frames_range
 
-    def get_infer_anim_kwargs(self) -> list[tuple[type, str, str]]:
+    def get_additional_infer_params(self) -> list[tuple[type, str, str]]:
         return [
                 (torch.device, "Device", "Select device to compute on"),
                 (bool, "Post processing", "Apply post processing on inferred data")         
@@ -220,5 +220,12 @@ class ModelInterface(GeneralInterface):
         return true_inferred_pos[0][10:-2], true_inferred_rot_euler[0][10:-2]
     
     # end function infer_anim
+
+    def is_skeleton_supported() -> bool:
+
+        # Placeholder for future implementation
+        return True
+    
+    # end function is_skeleton_supported
 
 # end class ModelInterface

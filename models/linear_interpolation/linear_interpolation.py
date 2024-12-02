@@ -16,7 +16,7 @@ class ModelInterface(GeneralInterface):
     
     # end function check_frames_range
 
-    def get_infer_anim_kwargs(self) -> list[tuple[type, str, str]]:
+    def get_additional_infer_params(self) -> list[tuple[type, str, str]]:
         return []
 
     # end get_infer_anim_kwargs
@@ -113,5 +113,12 @@ class ModelInterface(GeneralInterface):
         return interpolated_positions, interpolated_rotations
             
     # end function infer_anim
+
+    def is_skeleton_supported() -> bool:
+
+        # Placeholder for future implementation
+        return True
+    
+    # end function is_skeleton_supported
 
 # end class ModelInterface

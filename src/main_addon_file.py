@@ -484,7 +484,7 @@ class GenerationProperties(PropertyGroup):
         current_kwargs_attributes = []
     
         if selected_model is not None:
-            kwargs_list = selected_model.get_infer_anim_kwargs()
+            kwargs_list = selected_model.get_additional_infer_params()
             device_added = False
             for var_type, var_name, var_desc in kwargs_list:
                 if var_type == torch.device and not device_added:
@@ -564,7 +564,7 @@ def process_generation():
     kwargs = dict()
 
     if selected_model is not None:
-        kwargs_list = selected_model.get_infer_anim_kwargs()
+        kwargs_list = selected_model.get_additional_infer_params()
         for t, n, d in kwargs_list:
             if t == torch.device: kwargs[n] = selected_device
             else: kwargs[n] = getattr(mt, n) 
