@@ -19,12 +19,12 @@ def calculate_metrics(
 
     # Comparative metrics
     if orginal_obj:
-        metrics['PositionMSE'] = position_mse(orginal_obj, generated_obj, start_frame, end_frame)
-        metrics['RotationMSE'] = rotation_mse(orginal_obj, generated_obj, start_frame, end_frame)
+        metrics['Position MSE'] = position_mse(orginal_obj, generated_obj, start_frame, end_frame)
+        metrics['Rotation MSE'] = rotation_mse(orginal_obj, generated_obj, start_frame, end_frame)
 
     # Non-comparative metrics
-    metrics['PositionSmoothnessError'] = position_acc_smoothness_error(generated_obj, start_frame, end_frame)
-    metrics['RotationSmoothnessError'] = rotation_acc_smoothness_error(generated_obj, start_frame, end_frame)
+    metrics['Position Smoothness Error'] = position_acc_smoothness_error(generated_obj, start_frame, end_frame)
+    metrics['Rotation Smoothness Error'] = rotation_acc_smoothness_error(generated_obj, start_frame, end_frame)
 
     # Round generated metrics
     if round_digits is not None:
