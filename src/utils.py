@@ -1,4 +1,8 @@
+import json
+import csv
+
 import numpy as np
+from typing import Literal, Optional
 from scipy.spatial.transform import Rotation
 
 
@@ -80,3 +84,70 @@ def copy_object(obj, context):
     return new_obj
 
 # end function copy_object
+
+
+def has_missing_keyframes_between(
+    obj, 
+    keyframes_range: tuple[int, int]
+) -> bool:
+    
+    '''
+    Check if object has missing keyframes inside the defined range.
+    '''
+
+    frame_a, frame_b = keyframes_range
+
+    # Return false if object has no animation data
+    if not obj.animation_data or not obj.animation_data.action:
+        return False
+    
+    # Build set of all existing keyframes
+    fcurves = obj.animation_data.action.fcurves
+    keyframes = {int(k.co[0]) for fcurve in fcurves for k in fcurve.keyframe_points}
+
+    # Check if any keyframe is missing inside the range
+    for frame in range(frame_a + 1, frame_b):
+        if frame not in keyframes:
+            return True
+        
+    return False
+    
+# end function has_missing_keyframes
+
+
+def export_dict_to_file(
+    data: dict,
+    filename: str,  # Filename without extension
+    export_type: Literal['TXT', 'JSON', 'CSV']
+) -> str:
+    '''
+    Export dictionary to file in defined format.
+    Returns full filename with extension.
+    '''
+
+    match export_type:
+
+        case 'TXT':
+            filename += '.txt'
+            with open(filename, 'w') as file:
+                for key, value in data.items():
+                    file.write(f"{key}: {value}\n")
+
+        case 'JSON':
+            filename += '.json'
+            with open(filename, 'w') as file:
+                json.dump(data, file, indent=4)
+        
+        case 'CSV':
+            filename += '.csv'
+            data_list = [
+                {'Name': key, 'Value': value} for key, value in data.items()
+            ]
+            with open(filename, 'w', newline='') as file:
+                writer = csv.DictWriter(file, fieldnames=['Name', 'Value'])
+                writer.writeheader()
+                writer.writerows(data_list)
+
+    return filename
+
+# end function export_dict_to_file
