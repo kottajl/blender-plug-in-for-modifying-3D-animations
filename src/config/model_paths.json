@@ -1,7 +1,7 @@
 {
     "model_paths": [
         {
-            "name": "Motion inbetweening",
+            "name": "Two-stage transformer",
             "path": "models/motion_inbetweening/motion_inbetweening"
         },
         {
