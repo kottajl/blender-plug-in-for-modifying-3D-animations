@@ -32,17 +32,12 @@ def calculate_metrics(
             metrics[key] = round(metrics[key], round_digits)
 
     return metrics
-#calculate_metrics
 
 
-# ---- METRIC FUNCTIONS ----
 
-def position_mse(
-    obj1,
-    obj2,
-    start_frame: int,
-    end_frame: int
-) -> float:
+# --- Metric functions
+
+def position_mse(obj1, obj2, start_frame: int, end_frame: int) -> float:
     
     '''
     Compute the mean squared error between the keypoints of two armatures.
@@ -73,15 +68,9 @@ def position_mse(
     
     mse = sum_error / ( len(obj1.pose.bones) * (end_frame - start_frame + 1) )
     return mse
-#position_mse
 
 
-def rotation_mse(
-    obj1,
-    obj2,
-    start_frame: int,
-    end_frame: int
-) -> float:
+def rotation_mse(obj1, obj2, start_frame: int, end_frame: int) -> float:
         
     '''
     Compute the mean squared error between the rotations of two armatures.
@@ -119,14 +108,9 @@ def rotation_mse(
     
     mse = sum_error / ( len(obj1.pose.bones) * (end_frame - start_frame + 1) )
     return mse
-#rotation_mse
 
 
-def position_acc_smoothness_error(
-    obj,
-    start_frame: int,
-    end_frame: int
-) -> float:
+def position_acc_smoothness_error(obj, start_frame: int, end_frame: int) -> float:
     
     '''
     Compute the smoothness loss of the armature positions.
@@ -169,14 +153,9 @@ def position_acc_smoothness_error(
     denominator = len(obj.pose.bones) * (end_frame - start_frame + 1)
 
     return all_bones_smoothness / denominator
-#position_smoothness_error
 
 
-def rotation_acc_smoothness_error(
-    obj,
-    start_frame: int,
-    end_frame: int
-) -> float:
+def rotation_acc_smoothness_error(obj, start_frame: int, end_frame: int) -> float:
     
     '''
     Compute the smoothness loss of the armature rotations.
@@ -221,10 +200,10 @@ def rotation_acc_smoothness_error(
     denominator = len(obj.pose.bones) * (end_frame - start_frame + 1)
 
     return all_bones_smoothness / denominator
-#rotation_smoothness_error
 
 
-# ---- HELPER FUNCTIONS ----
+
+# --- Helper functions
 
 def _compute_angle(q1, q2, degrees=True) -> float:
     '''
@@ -239,4 +218,3 @@ def _compute_angle(q1, q2, degrees=True) -> float:
         angle = math.degrees(angle)
     
     return angle
-#_compute_angle

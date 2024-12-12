@@ -2,7 +2,7 @@ import json
 import csv
 
 import numpy as np
-from typing import Literal, Optional
+from typing import Literal
 from scipy.spatial.transform import Rotation
 
 
@@ -44,6 +44,7 @@ def convert_array_3x3matrix_to_euler_zyx(mat: np.array) -> np.ndarray:
                 qz = 0.25 * S
 
         return np.array([qw, qx, qy, qz])
+    
 
     # Create array for quats (X, Y, 4)
     X, Y = mat.shape[0:2]
@@ -63,8 +64,6 @@ def convert_array_3x3matrix_to_euler_zyx(mat: np.array) -> np.ndarray:
 
     return euler_angles
 
-# end function convert_array_3x3matrix_to_euler_zyx
-
 
 def copy_object(obj, context):
    
@@ -83,13 +82,8 @@ def copy_object(obj, context):
     
     return new_obj
 
-# end function copy_object
 
-
-def has_missing_keyframes_between(
-    obj, 
-    keyframes_range: tuple[int, int]
-) -> bool:
+def has_missing_keyframes_between(obj, keyframes_range: tuple[int, int]) -> bool:
     
     '''
     Check if object has missing keyframes inside the defined range.
@@ -111,15 +105,10 @@ def has_missing_keyframes_between(
             return True
         
     return False
+
+
+def export_dict_to_file(data: dict, filename: str, export_type: Literal['TXT', 'JSON', 'CSV']) -> str: # Filename without extension
     
-# end function has_missing_keyframes
-
-
-def export_dict_to_file(
-    data: dict,
-    filename: str,  # Filename without extension
-    export_type: Literal['TXT', 'JSON', 'CSV']
-) -> str:
     '''
     Export dictionary to file in defined format.
     Returns full filename with extension.
@@ -149,5 +138,3 @@ def export_dict_to_file(
                 writer.writerows(data_list)
 
     return filename
-
-# end function export_dict_to_file

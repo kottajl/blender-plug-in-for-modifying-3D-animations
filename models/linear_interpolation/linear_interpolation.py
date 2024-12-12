@@ -13,13 +13,11 @@ class ModelInterface(GeneralInterface):
         if start_frame <= scene_start_frame: return (False, "Must be at least 1 frame before selected range.") 
         if end_frame >= scene_end_frame: return (False, "Must be at least 1 frame after selected range.") 
         return (True, "")
-    
-    # end function check_frames_range
+
 
     def get_additional_infer_params(self) -> list[tuple[type, str, str]]:
         return []
-
-    # end get_infer_anim_kwargs
+    
 
     def infer_anim(self, anim_data, start_frame, end_frame, **kwargs):  
                 
@@ -61,6 +59,7 @@ class ModelInterface(GeneralInterface):
                         qz = 0.25 * S
 
                 return np.array([qw, qx, qy, qz])
+            
 
             # Create array for quats (X, Y, 4)
             X, Y = mat.shape[0:2]
@@ -79,8 +78,7 @@ class ModelInterface(GeneralInterface):
             euler_angles = euler_angles.reshape((X, Y, 3))
 
             return euler_angles
-        
-        # end function convert_array_3x3matrix_to_euler_zyx
+     
 
         # Interpolation
         trans = end_frame - start_frame + 1
@@ -112,13 +110,9 @@ class ModelInterface(GeneralInterface):
         
         return interpolated_positions, interpolated_rotations
             
-    # end function infer_anim
 
-    def is_skeleton_supported() -> bool:
-
-        # Placeholder for future implementation
+    def is_skeleton_supported(self, skeleton) -> bool:
         return True
     
-    # end function is_skeleton_supported
 
-# end class ModelInterface
+# ModelInterface

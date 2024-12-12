@@ -29,7 +29,6 @@ class ModelInterface(GeneralInterface):
         if end_frame + 2 > scene_end_frame:  return (False, "Must be at least 2 frames after selected range.") 
         return (True, "")
     
-    # end function check_frames_range
 
     def get_additional_infer_params(self) -> list[tuple[type, str, str]]:
         return [
@@ -37,7 +36,6 @@ class ModelInterface(GeneralInterface):
                 (bool, "Post processing", "Apply post processing on inferred data")         
             ]
     
-    # end function get_infer_anim_kwargs
 
     class BlenderDataSetSingle(torch.utils.data.Dataset):
         
@@ -99,8 +97,7 @@ class ModelInterface(GeneralInterface):
                 self.parents,
                 idx
             )
-        
-    # end class BlenderDataSetSingle
+
 
     def matrix9D_to_euler_angles(self, mat):
         quat_data = matrix9D_to_quat_torch(mat)
@@ -108,7 +105,6 @@ class ModelInterface(GeneralInterface):
         rotations = Rotation.from_quat(quat_data.cpu().numpy().flatten().reshape((-1, 4)))
         return rotations.as_euler('ZYX', degrees=True).reshape(1, -1, mat.shape[2], 3)
 
-    # end function matrix9D_to_euler_angles
 
     def infer_anim(self, anim_data, start_frame, end_frame, **kwargs):
         # Model arguments
@@ -219,13 +215,9 @@ class ModelInterface(GeneralInterface):
         
         return true_inferred_pos[0][10:-2], true_inferred_rot_euler[0][10:-2]
     
-    # end function infer_anim
 
-    def is_skeleton_supported() -> bool:
-
-        # Placeholder for future implementation
+    def is_skeleton_supported(self, skeleton) -> bool:
         return True
     
-    # end function is_skeleton_supported
 
-# end class ModelInterface
+# ModelInterface

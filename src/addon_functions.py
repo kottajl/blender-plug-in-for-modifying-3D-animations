@@ -64,7 +64,6 @@ class DecoratedBone:
         self.rest_bone = arm.bones[bone_name]
         self.pose_bone = obj.pose.bones[bone_name]
 
-        # TODO improve
         self.rot_order_str = "YZX"
         self.rot_order_str_reverse = self.rot_order_str[::-1] # XZY
 
@@ -89,8 +88,6 @@ class DecoratedBone:
     def update_posedata(self):
         self.pose_mat = self.pose_bone.matrix
         self.pose_imat = self.pose_mat.inverted()
-
-# end class DecoratedBone
 
 
 def get_anim_data(obj):
@@ -154,17 +151,14 @@ def get_anim_data(obj):
                 mat_final = itrans @ mat_final @ trans
                 loc = mat_final.to_translation() + dbone.rest_bone.head
             
-            # TODO improve
             loc2 = [loc[0], loc[2], -loc[1]]
             p.append(loc2)
 
             rot = mat_final.to_euler(dbone.rot_order_str_reverse, dbone.prev_euler)
             
             dbone.prev_euler = rot
-            # TODO improve
             rot = [-rot[dbone.rot_order[0]], rot[dbone.rot_order[1]], rot[dbone.rot_order[2]]]
                                                                            
-            # TODO delegate to a function
             order = "ZYX"
             mat = np.identity(3)
             
@@ -210,7 +204,6 @@ def get_anim_data(obj):
     anim["names"] = np.array(anim["names"])
     
     return anim
-# end function get_anim_data
 
 
 def apply_transforms(
@@ -238,7 +231,6 @@ def apply_transforms(
     
     bone_data = {}
     for bone in pose.bones:
-        # TODO improve
         bone.rotation_mode = "ZYX"
         bone.rotation_euler = Euler([0,0,0], bone.rotation_mode)
                 
@@ -247,7 +239,6 @@ def apply_transforms(
         rest_bone = pose_bone.bone
         bone_rest_matrix = rest_bone.matrix_local.to_3x3()
         
-        # TODO improve
         bone_rest_matrix[1], bone_rest_matrix[2] = bone_rest_matrix[2], -bone_rest_matrix[1]
                 
         bone_rest_matrix_inv = Matrix(bone_rest_matrix)
@@ -302,7 +293,6 @@ def apply_transforms(
             else:
                 bvh_rot = true_original_rot[frame_i][i].tolist()
             
-            # TODO improve
             bvh_rot = [radians(bvh_rot[0]), -radians(bvh_rot[1]), radians(180 - bvh_rot[2])]
             
             euler = Euler(bvh_rot, "XYZ")
@@ -328,5 +318,3 @@ def apply_transforms(
                 )
                                             
     scene.frame_set(prev_scene_frame)
-    
-# end function apply_transforms
