@@ -215,7 +215,7 @@ import torch
 from interface.general_interface import GeneralInterface
 
 import src.metrics as metrics
-from src.addon_functions import apply_transforms, get_anim_data
+from src.addon_functions import apply_transforms, get_anim_data, get_object_skeleton
 from src.utils import copy_object, convert_array_3x3matrix_to_euler_zyx, has_missing_keyframes_between, export_dict_to_file
 
 import bpy_extras
@@ -281,7 +281,7 @@ def generate_anim(
         return {"CANCELLED"} 
     
     # check if skeleton is supported by model
-    if not is_skeleton_supported(None):
+    if not interface.is_skeleton_supported(get_object_skeleton(obj)):
         show_info("ERROR", "Skeleton is not supported by model")
         return {"CANCELLED"} 
     
@@ -600,7 +600,7 @@ class dope_sheet_generation_button(bpy.types.Operator):
             show_info("ERROR", "More than 2 frames are selected.")
             return {"CANCELLED"} 
         elif selected_frames[0] + 1 == selected_frames[1]:
-            show_info("ERROR", "Must be at least 1 frame in-between.")1
+            show_info("ERROR", "Must be at least 1 frame in-between.")
             return {"CANCELLED"} 
         else:
             mt = bpy.context.scene.my_tool

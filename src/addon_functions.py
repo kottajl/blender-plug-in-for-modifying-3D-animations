@@ -90,6 +90,27 @@ class DecoratedBone:
         self.pose_imat = self.pose_mat.inverted()
 
 
+def get_object_skeleton(obj):
+    '''
+    Gets skeleton structure from the Blender object
+    '''
+    
+    skeleton = []
+    armature = obj.data
+    
+    for bone in armature.bones:
+        if bone.parent:
+            skeleton.append((bone.name, bone.parent.name))
+        else:
+            skeleton.append((bone.name, None))
+        
+    for i in range(len(skeleton)):
+        bone_name, bone_parent_name = skeleton[i]
+        if bone_parent_name != None:
+            skeleton[i] = bone_name, [el[0] for el in skeleton].index(bone_parent_name)
+            
+    return skeleton
+
 def get_anim_data(obj):
     '''
     Gets animation data from the Blender object.
