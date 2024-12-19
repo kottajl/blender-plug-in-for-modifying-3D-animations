@@ -450,7 +450,7 @@ def format_bvh_name(filename):
 sample_bvh_path = str(directory_path).removesuffix("src") + "sample_bvh_files"
 def sample_bvh_files_enum(self, context):
     files = [f for f in os.listdir(sample_bvh_path) if f.endswith(".bvh")]
-    return sorted([(f, format_bvh_name(f), f) for f in files], key=lambda x: x[2], reverse=True)
+    return sorted([(f, format_bvh_name(f), f) for f in files], key=lambda x: x[2], reverse=False)
          
 
 def get_scene_objects_enum(self, context):
