@@ -15,6 +15,8 @@
 
 ## Installation
 
+**Important note**: At this point, when installing the plug-in from the zip, the plug-in requires Blender version 4.2.0 or higher!
+
 To install the plug-in:
 
 1. Download the file ‘***ai_motion_bridge-<version>.zip***’ from this repository.
