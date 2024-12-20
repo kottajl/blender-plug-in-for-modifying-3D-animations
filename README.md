@@ -90,3 +90,11 @@ It is also possible to use the plugin via the context menu on the timeline. To d
 - **/sample_bvh_files** -> sample motion capture files
 
 - **/lib** -> contains binary files required for the plugin
+
+
+## Running tests
+1. Install the plugin and run it in Blender at least once to install the necessary libraries
+
+2. Install **pytest** and **pytest-blender** libraries in your Python installation
+
+3. Run command **pytest --blender-executable <blender-executable-path>** in the **src/test folder**

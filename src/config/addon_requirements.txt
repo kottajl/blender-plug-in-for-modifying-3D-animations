@@ -2,3 +2,4 @@ numpy
 scipy
 requests
 torch torchvision torchaudio
+pytest
