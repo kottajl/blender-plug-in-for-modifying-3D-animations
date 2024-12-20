@@ -8,11 +8,9 @@ from bpy.types import Object, Armature
 
 
 class DecoratedBone:
-
     '''
     Modified version of the Bone class from the BVH importer.
     '''
-
 
     __slots__ = (
         # Bone name, used as key in many places.
@@ -55,20 +53,20 @@ class DecoratedBone:
     # }
 
     def __init__(
-        self, 
-        bone_name: str, 
-        obj: Object, 
-        arm: Armature
+            self,
+            bone_name: str,
+            obj: Object,
+            arm: Armature
     ):
         self.name = bone_name
         self.rest_bone = arm.bones[bone_name]
         self.pose_bone = obj.pose.bones[bone_name]
 
         self.rot_order_str = "YZX"
-        self.rot_order_str_reverse = self.rot_order_str[::-1] # XZY
+        self.rot_order_str_reverse = self.rot_order_str[::-1]  # XZY
 
-        #self.rot_order = DecoratedBone._eul_order_lookup[self.rot_order_str]
-        self.rot_order = (1, 2, 0) # YZX
+        # self.rot_order = DecoratedBone._eul_order_lookup[self.rot_order_str]
+        self.rot_order = (1, 2, 0)  # YZX
 
         self.pose_mat = self.pose_bone.matrix
 
@@ -82,8 +80,8 @@ class DecoratedBone:
 
         self.parent = None
         # self.prev_euler = Euler((0.0, 0.0, 0.0), self.rot_order_str_reverse)
-        self.prev_euler = Euler((0.0, 0.0, 0.0), "XZY") # reverse order
-        #self.skip_position = ((self.rest_bone.use_connect or root_transform_only) and self.rest_bone.parent)
+        self.prev_euler = Euler((0.0, 0.0, 0.0), "XZY")  # reverse order
+        # self.skip_position = ((self.rest_bone.use_connect or root_transform_only) and self.rest_bone.parent)
 
     def update_posedata(self):
         self.pose_mat = self.pose_bone.matrix
@@ -94,22 +92,18 @@ def get_object_skeleton(obj):
     '''
     Gets skeleton structure from the Blender object
     '''
-    
+
     skeleton = []
     armature = obj.data
-    
+
     for bone in armature.bones:
         if bone.parent:
             skeleton.append((bone.name, bone.parent.name))
         else:
             skeleton.append((bone.name, None))
-        
-    for i in range(len(skeleton)):
-        bone_name, bone_parent_name = skeleton[i]
-        if bone_parent_name != None:
-            skeleton[i] = bone_name, [el[0] for el in skeleton].index(bone_parent_name)
-            
+
     return skeleton
+
 
 def get_anim_data(obj):
     '''
@@ -120,11 +114,13 @@ def get_anim_data(obj):
     pose = obj.pose
     scene = bpy.context.scene
     prev_scene_frame = scene.frame_current
-    
+
+    print(prev_scene_frame)
+
     anim = {}
     anim["rotations"] = []
     anim["positions"] = []
-    anim["offsets"] = []    # Vector objects
+    anim["offsets"] = []  # Vector objects
     anim["parents"] = []
     anim["names"] = []
 
@@ -132,7 +128,7 @@ def get_anim_data(obj):
 
     for bone in armature.bones:
         anim["names"].append(bone.name)
-        if bone.parent:     # If bone has parent
+        if bone.parent:  # If bone has parent
             anim["parents"].append(anim["names"].index(bone.parent.name))
             anim["offsets"].append(bone.head_local - bone.parent.head_local)
         else:
@@ -151,10 +147,10 @@ def get_anim_data(obj):
 
     for frame in range(scene.frame_start, scene.frame_end + 1):
         scene.frame_set(frame)
-        
+
         r = []  # rotation
         p = []  # position
-        
+
         for dbone in bones_decorated:
             dbone.update_posedata()
 
@@ -171,18 +167,18 @@ def get_anim_data(obj):
                 mat_final = dbone.pose_mat @ dbone.rest_arm_imat
                 mat_final = itrans @ mat_final @ trans
                 loc = mat_final.to_translation() + dbone.rest_bone.head
-            
+
             loc2 = [loc[0], loc[2], -loc[1]]
             p.append(loc2)
 
             rot = mat_final.to_euler(dbone.rot_order_str_reverse, dbone.prev_euler)
-            
+
             dbone.prev_euler = rot
             rot = [-rot[dbone.rot_order[0]], rot[dbone.rot_order[1]], rot[dbone.rot_order[2]]]
-                                                                           
+
             order = "ZYX"
             mat = np.identity(3)
-            
+
             for idx, axis in enumerate(order):
                 angle_radians = rot[idx:idx + 1]
 
@@ -207,14 +203,14 @@ def get_anim_data(obj):
                     rot_mat *= np.array([[1, -1], [1, 1]])
                     rot_mat = np.insert(rot_mat, 2, [0, 0], axis=-2)
                     rot_mat = np.insert(rot_mat, 2, [0, 0, 1], axis=-1)
-                
+
                 mat = np.matmul(mat, rot_mat)
-                        
+
             r.append(mat)
-       
+
         anim["rotations"].append(r)
-        anim["positions"].append(p) 
-        
+        anim["positions"].append(p)
+
     scene.frame_set(prev_scene_frame)
 
     # Change arrays to numpy arrays
@@ -223,17 +219,17 @@ def get_anim_data(obj):
     anim["offsets"] = np.array(anim["offsets"])
     anim["parents"] = np.array(anim["parents"])
     anim["names"] = np.array(anim["names"])
-    
+
     return anim
 
 
 def apply_transforms(
-    obj, 
-    true_original_pos: np.array, 
-    true_inferred_pos,
-    true_original_rot,
-    true_inferred_rot,
-    offset: int
+        obj,
+        true_original_pos: np.array,
+        true_inferred_pos,
+        true_original_rot,
+        true_inferred_rot,
+        offset: int
 ) -> None:
     '''
     Apply transforms to the object.
@@ -241,57 +237,57 @@ def apply_transforms(
 
     scene = bpy.context.scene
     prev_scene_frame = scene.frame_current
-        
+
     num_frame = scene.frame_end - scene.frame_start + 1
     obj_offset = None
-    
+
     pose = obj.pose
-    
+
     action = bpy.data.actions.new(name="action1")
     obj.animation_data.action = action
-    
+
     bone_data = {}
     for bone in pose.bones:
         bone.rotation_mode = "ZYX"
-        bone.rotation_euler = Euler([0,0,0], bone.rotation_mode)
-                
+        bone.rotation_euler = Euler([0, 0, 0], bone.rotation_mode)
+
         bone_name = bone.name
         pose_bone = bone
         rest_bone = pose_bone.bone
         bone_rest_matrix = rest_bone.matrix_local.to_3x3()
-        
+
         bone_rest_matrix[1], bone_rest_matrix[2] = bone_rest_matrix[2], -bone_rest_matrix[1]
-                
+
         bone_rest_matrix_inv = Matrix(bone_rest_matrix)
         bone_rest_matrix_inv.invert()
 
         bone_rest_matrix_inv.resize_4x4()
         bone_rest_matrix.resize_4x4()
-        
+
         bone_data[bone_name] = (pose_bone, rest_bone, bone_rest_matrix, bone_rest_matrix_inv)
-    
+
     for i, bvh_node in enumerate(pose.bones):
         pose_bone, bone, bone_rest_matrix, bone_rest_matrix_inv = bone_data[bvh_node.name]
-        
+
         # location
         if i == 0:
             data_path = 'pose.bones["%s"].location' % escape_identifier(pose_bone.name)
             location = [(0.0, 0.0, 0.0)] * num_frame
-            for frame_i in range(scene.frame_start-1, scene.frame_end-1):
+            for frame_i in range(scene.frame_start - 1, scene.frame_end - 1):
                 if frame_i > offset - 1 and frame_i < offset + len(true_inferred_pos):
-                    bvh_loc = true_inferred_pos[frame_i-offset][i].tolist()
+                    bvh_loc = true_inferred_pos[frame_i - offset][i].tolist()
                 else:
                     bvh_loc = true_original_pos[frame_i][i].tolist()
 
                 bone_translate_matrix = Matrix.Translation(Vector(bvh_loc))
-                
+
                 loc = (bone_rest_matrix_inv @ bone_translate_matrix).to_translation()
-                 
+
                 if obj_offset is None:
                     obj_offset = loc
-                                  
-                location[frame_i] = loc - obj_offset            
-                
+
+                location[frame_i] = loc - obj_offset
+
             for axis_i in range(3):
                 curve = action.fcurves.new(data_path=data_path, index=axis_i, action_group=bvh_node.name)
                 keyframe_points = curve.keyframe_points
@@ -299,33 +295,33 @@ def apply_transforms(
 
                 for frame_i in range(num_frame):
                     keyframe_points[frame_i].co = (
-                        frame_i+1,
+                        frame_i + 1,
                         location[frame_i][axis_i],
                     )
-        
+
         # rotation
         rotate = [(0.0, 0.0, 0.0)] * num_frame
         data_path = ('pose.bones["%s"].rotation_euler' % escape_identifier(pose_bone.name))
 
         prev_euler = Euler((0.0, 0.0, 0.0))
-        for frame_i in range(scene.frame_start-1, scene.frame_end-1):
+        for frame_i in range(scene.frame_start - 1, scene.frame_end - 1):
             if frame_i > offset - 1 and frame_i < offset + len(true_inferred_rot):
-                bvh_rot = true_inferred_rot[frame_i-offset][i].tolist()                
+                bvh_rot = true_inferred_rot[frame_i - offset][i].tolist()
             else:
                 bvh_rot = true_original_rot[frame_i][i].tolist()
-            
+
             bvh_rot = [radians(bvh_rot[0]), -radians(bvh_rot[1]), radians(180 - bvh_rot[2])]
-            
+
             euler = Euler(bvh_rot, "XYZ")
             bone_rotation_matrix = euler.to_matrix().to_4x4()
             bone_rotation_matrix = (
-                bone_rest_matrix_inv @
-                bone_rotation_matrix @
-                bone_rest_matrix
+                    bone_rest_matrix_inv @
+                    bone_rotation_matrix @
+                    bone_rest_matrix
             )
             rotate[frame_i] = bone_rotation_matrix.to_euler(pose_bone.rotation_mode, prev_euler)
             prev_euler = rotate[frame_i]
-            
+
         # For each euler angle x, y, z (or quaternion w, x, y, z).
         for axis_i in range(len(rotate[0])):
             curve = action.fcurves.new(data_path=data_path, index=axis_i, action_group=bvh_node.name)
@@ -334,8 +330,8 @@ def apply_transforms(
 
             for frame_i in range(num_frame):
                 keyframe_points[frame_i].co = (
-                    frame_i+1,
+                    frame_i + 1,
                     rotate[frame_i][axis_i],
                 )
-                                            
+
     scene.frame_set(prev_scene_frame)

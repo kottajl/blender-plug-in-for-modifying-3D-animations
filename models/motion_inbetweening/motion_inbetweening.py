@@ -217,7 +217,6 @@ class ModelInterface(GeneralInterface):
     
 
     def is_skeleton_supported(self, skeleton) -> bool:
-        skeleton = [(el[0], skeleton[el[1]][0] if el[1] is not None else None) for el in skeleton]
         return sorted(skeleton) == sorted([('Hips', None), ('LeftUpLeg', 'Hips'), ('LeftLeg', 'LeftUpLeg'), ('LeftFoot', 'LeftLeg'), ('LeftToe', 'LeftFoot'), ('RightUpLeg', 'Hips'), 
             ('RightLeg', 'RightUpLeg'), ('RightFoot', 'RightLeg'), ('RightToe', 'RightFoot'), ('Spine', 'Hips'), ('Spine1', 'Spine'), ('Spine2', 'Spine1'), ('Neck', 'Spine2'), ('Head', 'Neck'), 
                 ('LeftShoulder', 'Spine2'), ('LeftArm', 'LeftShoulder'), ('LeftForeArm', 'LeftArm'), ('LeftHand', 'LeftForeArm'), ('RightShoulder', 'Spine2'), ('RightArm', 'RightShoulder'), 
