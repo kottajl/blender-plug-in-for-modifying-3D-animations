@@ -21,9 +21,25 @@ import os
 import json
 import platform 
 
-directory_path = pathlib.Path(bpy.context.space_data.text.filepath).parent.resolve()
+# directory_path = pathlib.Path(bpy.context.space_data.text.filepath).parent.resolve()
+# modules_path = str(directory_path.parent.resolve())
+# sys.path.append(modules_path)
+
+# print(f" ## {pathlib.Path(bpy.context.space_data.text.filepath).parent.resolve()}")
+print(f" ## {pathlib.Path(__file__).parent.resolve()}")
+
+directory_path = pathlib.Path(__file__).parent.resolve()
+
+# Ścieżka do folderu "modules"
 modules_path = str(directory_path.parent.resolve())
-sys.path.append(modules_path)
+
+# Dodanie ścieżki do sys.path
+if modules_path not in sys.path:
+    sys.path.append(modules_path)
+
+
+pip_target = os.path.join(sys.prefix, "lib", "site-packages")
+# sys.path.append(os.path.join(os.path.dirname(sys.executable), 'lib', 'site-packages'))
 
 os_name = platform.system()
 req_path = str(directory_path) + str(os.sep) + "config" + str(os.sep) + "addon_requirements.txt"
@@ -36,7 +52,7 @@ def handle_pytorch3d_installation():
         if os_name == "Windows":
             pytorch3d_whl_path = str(directory_path).removesuffix("src") + "lib" +  str(os.sep) + "pytorch3d-0.7.8-cp310-cp310-win_amd64.whl"
             try:
-                subprocess.check_call([sys.executable, '-m', 'pip', 'install', pytorch3d_whl_path])
+                subprocess.check_call([sys.executable, '-m', 'pip', 'install', pytorch3d_whl_path, '-t', pip_target])
             except Exception as e:
                 print("\033[33m" + str(e) + "\033[0m")
                 return False
@@ -78,7 +94,7 @@ def handle_torch_installation():
         import torchaudio
         import torchvision
     except ModuleNotFoundError:
-        pip_parts = [sys.executable, '-m', 'pip', 'install', 'torch', 'torchvision', 'torchaudio']
+        pip_parts = [sys.executable, '-m', 'pip', 'install', 'torch', 'torchvision', 'torchaudio', '-t', pip_target]
         if os_name == "Windows":
             pip_parts.append('--index-url')
             cuda_path = os.getenv('CUDA_PATH')
@@ -143,6 +159,8 @@ with open(req_path, 'r', encoding='utf-8') as file:
 
         lib_name = pip_parts[4]
         if '>=' in lib_name: lib_name = lib_name.split('>=')[0]
+
+        pip_parts.extend(['-t', pip_target])
 
         try:
             importlib.import_module(lib_name)
@@ -212,11 +230,18 @@ if not bvh_files:
 
 import torch
 
+
 from interface.general_interface import GeneralInterface
 
 import src.metrics as metrics
 from src.addon_functions import apply_transforms, get_anim_data, get_object_skeleton
 from src.utils import copy_object, convert_array_3x3matrix_to_euler_zyx, has_missing_keyframes_between, export_dict_to_file
+
+# from ..interface.general_interface import GeneralInterface
+
+# from . import metrics as metrics
+# from .addon_functions import apply_transforms, get_anim_data, get_object_skeleton
+# from .utils import copy_object, convert_array_3x3matrix_to_euler_zyx, has_missing_keyframes_between, export_dict_to_file
 
 import bpy_extras
 from bpy.utils import register_class, unregister_class
@@ -668,8 +693,10 @@ class InstallLibrariesOperator(bpy.types.Operator, bpy_extras.io_utils.ImportHel
                     part.replace("==", ">=") if "==" in part else part for part in x.split()
                 ]
 
-                lib_name = pip_parts[4]
+                lib_name = pip_parts[6]
                 if '>=' in lib_name: lib_name = lib_name.split('>=')[0]
+
+                pip_parts.extend(['-t', pip_target])
 
                 if lib_name in ["torch", "torchvision", "torchaudio"]: 
                     if handle_torch_installation() == False: not_installed.append(x)
@@ -1046,9 +1073,19 @@ def unregister():
     for x in classes_to_register: unregister_class(x)
     del bpy.types.Scene.my_tool
     bpy.types.DOPESHEET_MT_context_menu.remove(draw_buttons_in_dope_sheet)
-    
-    
+
+
+def initialize_addon():
+    try:
+        global selected_device
+        selected_device = "cpu" 
+        select_ai_model(0)
+        print("Addon initialized successfully.")
+    except Exception as e:
+        print("Initialization error")
+        print(e)
+
+bpy.app.timers.register(initialize_addon, first_interval=1.0)   # 💀
+
 if __name__ == "__main__":
     register()
-    select_ai_model(0)
-    selected_device = "cpu"

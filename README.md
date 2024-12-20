@@ -13,6 +13,26 @@
 - **/lib** -> contains binary files required for the plugin
 
 
+## Installation
+
+To install the plug-in:
+
+1. Download the file ‘***ai_motion_bridge-<version>.zip***’ from this repository.
+
+2. Open **Blender**.
+
+3. Go to ‘**Preferences**’.
+
+4. On the list on the left, select ‘**Add-ons**’.
+
+5. Press the arrow in the top right corner and select ‘***Install from disc...***’.
+
+6. Select the downloaded zip file.
+
+After selecting the file and confirming the selection with the ‘***Install from disc***’ button, the plug-in may take some time to download the relevant dependencies and files from external repositories. 
+
+This proces may take a while. Progress can be checked from the terminal.
+
 
 ## How to use
 

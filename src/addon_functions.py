@@ -277,7 +277,7 @@ def apply_transforms(
         if i == 0:
             data_path = 'pose.bones["%s"].location' % escape_identifier(pose_bone.name)
             location = [(0.0, 0.0, 0.0)] * num_frame
-            for frame_i in range(scene.frame_start-1, scene.frame_end-1):
+            for frame_i in range(scene.frame_start-1, scene.frame_end):
                 if frame_i > offset - 1 and frame_i < offset + len(true_inferred_pos):
                     bvh_loc = true_inferred_pos[frame_i-offset][i].tolist()
                 else:
@@ -286,7 +286,7 @@ def apply_transforms(
                 bone_translate_matrix = Matrix.Translation(Vector(bvh_loc))
                 
                 loc = (bone_rest_matrix_inv @ bone_translate_matrix).to_translation()
-                 
+                
                 if obj_offset is None:
                     obj_offset = loc
                                   
@@ -308,7 +308,7 @@ def apply_transforms(
         data_path = ('pose.bones["%s"].rotation_euler' % escape_identifier(pose_bone.name))
 
         prev_euler = Euler((0.0, 0.0, 0.0))
-        for frame_i in range(scene.frame_start-1, scene.frame_end-1):
+        for frame_i in range(scene.frame_start-1, scene.frame_end):
             if frame_i > offset - 1 and frame_i < offset + len(true_inferred_rot):
                 bvh_rot = true_inferred_rot[frame_i-offset][i].tolist()                
             else:
