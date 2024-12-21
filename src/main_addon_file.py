@@ -21,25 +21,15 @@ import os
 import json
 import platform 
 
-# directory_path = pathlib.Path(bpy.context.space_data.text.filepath).parent.resolve()
-# modules_path = str(directory_path.parent.resolve())
-# sys.path.append(modules_path)
-
-# print(f" ## {pathlib.Path(bpy.context.space_data.text.filepath).parent.resolve()}")
-print(f" ## {pathlib.Path(__file__).parent.resolve()}")
 
 directory_path = pathlib.Path(__file__).parent.resolve()
-
-# Ścieżka do folderu "modules"
 modules_path = str(directory_path.parent.resolve())
 
-# Dodanie ścieżki do sys.path
 if modules_path not in sys.path:
     sys.path.append(modules_path)
 
 
 pip_target = os.path.join(sys.prefix, "lib", "site-packages")
-# sys.path.append(os.path.join(os.path.dirname(sys.executable), 'lib', 'site-packages'))
 
 os_name = platform.system()
 req_path = str(directory_path) + str(os.sep) + "config" + str(os.sep) + "addon_requirements.txt"
@@ -378,18 +368,6 @@ def generate_anim(
 
 
 # --- Global variables
-
-bl_info = {
-    "name" : "Addon",
-    "author" : "Pluginowcy",
-    "version" : (1, 0),
-    "blender" : (4, 0, 0),
-    "location" : "View3D > N",
-    "description" : "",
-    "warning" : "",
-    "doc_url" : "",
-    "category" : "",
-} 
 
 selected_model : GeneralInterface = None
 selected_device : str = None
@@ -839,11 +817,11 @@ class OpenFBXExportMenu(bpy.types.Operator):
     
        
 class PLUGIN_PT_GenerationPanel(bpy.types.Panel):
-    bl_label = "Addon"
+    bl_label = "AI Motion Bridge"
     bl_idname = "PLUGIN_PT_generation_panel"
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
-    bl_category = "Addon"
+    bl_category = "AI Motion Bridge"
     bl_context = ""   
 
     def draw(self, context):
