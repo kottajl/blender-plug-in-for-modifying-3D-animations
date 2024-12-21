@@ -24,11 +24,7 @@ import platform
 
 directory_path = pathlib.Path(__file__).parent.resolve()
 modules_path = str(directory_path.parent.resolve())
-
-if modules_path not in sys.path:
-    sys.path.append(modules_path)
-
-
+if modules_path not in sys.path: sys.path.append(modules_path)
 pip_target = os.path.join(sys.prefix, "lib", "site-packages")
 
 os_name = platform.system()
@@ -220,18 +216,11 @@ if not bvh_files:
 
 import torch
 
-
 from interface.general_interface import GeneralInterface
 
 import src.metrics as metrics
 from src.addon_functions import apply_transforms, get_anim_data, get_object_skeleton
 from src.utils import copy_object, convert_array_3x3matrix_to_euler_zyx, has_missing_keyframes_between, export_dict_to_file
-
-# from ..interface.general_interface import GeneralInterface
-
-# from . import metrics as metrics
-# from .addon_functions import apply_transforms, get_anim_data, get_object_skeleton
-# from .utils import copy_object, convert_array_3x3matrix_to_euler_zyx, has_missing_keyframes_between, export_dict_to_file
 
 import bpy_extras
 from bpy.utils import register_class, unregister_class
@@ -817,11 +806,11 @@ class OpenFBXExportMenu(bpy.types.Operator):
     
        
 class PLUGIN_PT_GenerationPanel(bpy.types.Panel):
-    bl_label = "AI Motion Bridge"
+    bl_label = "AI Animation Bridge"
     bl_idname = "PLUGIN_PT_generation_panel"
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
-    bl_category = "AI Motion Bridge"
+    bl_category = "AI Animation Bridge"
     bl_context = ""   
 
     def draw(self, context):
@@ -1058,12 +1047,12 @@ def initialize_addon():
         global selected_device
         selected_device = "cpu" 
         select_ai_model(0)
-        print("Addon initialized successfully.")
+        print("AI Animation Bridge addon started successfully.")
     except Exception as e:
-        print("Initialization error")
-        print(e)
+        print(f"AI Animation Bridge addon encoutered initialization error, {e}")
 
-bpy.app.timers.register(initialize_addon, first_interval=1.0)   # 💀
+bpy.app.timers.register(initialize_addon, first_interval=1.0) 
+
 
 if __name__ == "__main__":
     register()
