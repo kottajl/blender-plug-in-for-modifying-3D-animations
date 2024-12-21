@@ -19,7 +19,7 @@
 
 To install the plug-in:
 
-1. Download the file ‘***ai_motion_bridge-<version>.zip***’ from this repository.
+1. Download the file ‘***ai_motion_bridge-\<version\>.zip***’ from this repository.
 
 2. Open **Blender**.
 
