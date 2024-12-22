@@ -1,1 +1,0 @@
-"<Blender 4.2.0 or above localization>/blender.exe" --command extension build

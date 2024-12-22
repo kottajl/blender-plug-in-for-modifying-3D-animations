@@ -32,7 +32,7 @@ class GeneralInterface(ABC):
         pass
 
     @abstractmethod
-    def is_skeleton_supported(self, skeleton: list[tuple[str, int]]) -> bool:
+    def is_skeleton_supported(self, skeleton: list[tuple[str, str]]) -> bool:
 
         '''
         Check if the given skeleton is supported by the model, if this function returns False frame generation

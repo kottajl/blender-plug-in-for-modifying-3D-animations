@@ -19,12 +19,9 @@ license = [
   "SPDX:GPL-3.0-or-later",
 ]
 
-platforms = ["windows-x64", "macos-arm64", "linux-x64", "windows-arm64", "macos-x64"]
-
 [permissions]
 files = "Add new AI model"
 network = "Download trained AI models"
-clipboard = "Copy and paste 3D models"
 
 [build]
 paths_exclude_pattern = [
@@ -43,5 +40,7 @@ paths_exclude_pattern = [
   "/models/motion_inbetweening/experiments/lafan1_detail_model_release/*.pkl",
   "/models/motion_inbetweening/datasets/lafan1/*.bvh",
   "/models/motion_inbetweening/datasets/lafan1/*.pkl",
-  "/models/motion_inbetweening/output/*.bvh"
+  "/models/motion_inbetweening/output/*.bvh",
+  "/scripts/",
+  "/src/test/"
 ]

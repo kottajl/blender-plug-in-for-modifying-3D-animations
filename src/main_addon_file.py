@@ -21,8 +21,13 @@ import os
 import json
 import platform 
 
+if bpy is None or bpy.context is None or hasattr(bpy.context, "space_data") == False or bpy.context.space_data is None:
+    # If installing addon from ZIP file
+    directory_path = pathlib.Path(__file__).parent.resolve()
+else:
+    # If running addon code from Scripting tab
+    directory_path = pathlib.Path(bpy.context.space_data.text.filepath).parent.resolve()
 
-directory_path = pathlib.Path(__file__).parent.resolve()
 modules_path = str(directory_path.parent.resolve())
 if modules_path not in sys.path: sys.path.append(modules_path)
 pip_target = os.path.join(sys.prefix, "lib", "site-packages")
@@ -944,6 +949,7 @@ class MetricsOutputWindow(bpy.types.Operator):
 
         layout.separator()
         layout.operator(ExportMetricsButton.bl_idname, text="Export to file")
+        layout.template_popup_confirm("", text="", cancel_text='OK')
 
 
 class ExportMetricsButton(bpy.types.Operator):

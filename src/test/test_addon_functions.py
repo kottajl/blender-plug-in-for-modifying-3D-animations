@@ -1,6 +1,6 @@
-import src.addon_functions as add_f
+from .. import addon_functions as add_f
 import numpy as np
-from src.test.types import Bone, Object, Armature, Pose
+from .types import Bone, Object, Armature, Pose
 from mathutils import Matrix, Vector
 import bpy
 

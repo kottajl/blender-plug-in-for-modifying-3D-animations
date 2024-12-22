@@ -22,7 +22,7 @@ To install the plug-in:
 
 ### Older Blender versions
 
-Currently there is no option to install addon from **ZIP** file. To install the plug-in:
+Using addon on these versions is not recommended. Currently there is no option to install addon from **ZIP** file. Only option is to run code for sigle use:
 
 1. Download whole repository.
 
@@ -93,8 +93,9 @@ It is also possible to use the plugin via the context menu on the timeline. To d
 
 
 ## Running tests
+
 1. Install the plugin and run it in Blender at least once to install the necessary libraries
 
-2. Install **pytest** and **pytest-blender** libraries in your Python installation
+2. Install **pytest** and **pytest-blender** libraries in your local Python installation (not that of Blender)
 
-3. Run command **pytest --blender-executable <blender-executable-path>** in the **src/test folder**
+3. Use relevant file from **scripts** folder
