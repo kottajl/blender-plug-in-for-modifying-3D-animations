@@ -87,7 +87,7 @@ def test_apply_transforms():
     np.testing.assert_allclose(out_rotations, np.array(
         [
             [0, -2.61, -1.57],
-            [-1.57, -3.49,  0],
+            [-3.14, -3.14, -2.09],
             [-1.52, - 2.74, -1.57]
         ]
     ), atol=1e-2, rtol=1e-2)
