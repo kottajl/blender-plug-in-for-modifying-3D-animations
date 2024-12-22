@@ -103,12 +103,7 @@ def get_object_skeleton(obj):
             skeleton.append((bone.name, bone.parent.name))
         else:
             skeleton.append((bone.name, None))
-        
-    for i in range(len(skeleton)):
-        bone_name, bone_parent_name = skeleton[i]
-        if bone_parent_name != None:
-            skeleton[i] = bone_name, [el[0] for el in skeleton].index(bone_parent_name)
-            
+
     return skeleton
 
 def get_anim_data(obj):
@@ -286,7 +281,7 @@ def apply_transforms(
                 bone_translate_matrix = Matrix.Translation(Vector(bvh_loc))
                 
                 loc = (bone_rest_matrix_inv @ bone_translate_matrix).to_translation()
-                
+
                 if obj_offset is None:
                     obj_offset = loc
                                   
