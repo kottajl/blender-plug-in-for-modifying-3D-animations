@@ -30,10 +30,14 @@ else:
 
 modules_path = str(directory_path.parent.resolve())
 if modules_path not in sys.path: sys.path.append(modules_path)
-pip_target = os.path.join(sys.prefix, "lib", "site-packages")
 
 os_name = platform.system()
 req_path = str(directory_path) + str(os.sep) + "config" + str(os.sep) + "addon_requirements.txt"
+
+# Defining target for pip installation (for Windows systems only)
+pip_target = os.path.join(sys.prefix, "lib", "site-packages")
+pip_target_sufix: list = ['-t', pip_target] if os_name == "Windows" else []
+
 
 def handle_pytorch3d_installation():
     try:
@@ -43,7 +47,7 @@ def handle_pytorch3d_installation():
         if os_name == "Windows":
             pytorch3d_whl_path = str(directory_path).removesuffix("src") + "lib" +  str(os.sep) + "pytorch3d-0.7.8-cp310-cp310-win_amd64.whl"
             try:
-                subprocess.check_call([sys.executable, '-m', 'pip', 'install', pytorch3d_whl_path, '-t', pip_target])
+                subprocess.check_call([sys.executable, '-m', 'pip', 'install', pytorch3d_whl_path] + pip_target_sufix)
             except Exception as e:
                 print("\033[33m" + str(e) + "\033[0m")
                 return False
@@ -85,7 +89,7 @@ def handle_torch_installation():
         import torchaudio
         import torchvision
     except ModuleNotFoundError:
-        pip_parts = [sys.executable, '-m', 'pip', 'install', 'torch', 'torchvision', 'torchaudio', '-t', pip_target]
+        pip_parts = [sys.executable, '-m', 'pip', 'install', 'torch', 'torchvision', 'torchaudio'] + pip_target_sufix
         if os_name == "Windows":
             pip_parts.append('--index-url')
             cuda_path = os.getenv('CUDA_PATH')
@@ -151,7 +155,7 @@ with open(req_path, 'r', encoding='utf-8') as file:
         lib_name = pip_parts[4]
         if '>=' in lib_name: lib_name = lib_name.split('>=')[0]
 
-        pip_parts.extend(['-t', pip_target])
+        pip_parts.extend(pip_target_sufix)
 
         try:
             importlib.import_module(lib_name)
@@ -668,7 +672,7 @@ class InstallLibrariesOperator(bpy.types.Operator, bpy_extras.io_utils.ImportHel
                 lib_name = pip_parts[6]
                 if '>=' in lib_name: lib_name = lib_name.split('>=')[0]
 
-                pip_parts.extend(['-t', pip_target])
+                pip_parts.extend(pip_target_sufix)
 
                 if lib_name in ["torch", "torchvision", "torchaudio"]: 
                     if handle_torch_installation() == False: not_installed.append(x)
@@ -949,7 +953,9 @@ class MetricsOutputWindow(bpy.types.Operator):
 
         layout.separator()
         layout.operator(ExportMetricsButton.bl_idname, text="Export to file")
-        layout.template_popup_confirm("", text="", cancel_text='OK')
+
+        if bpy.app.version >= (4, 2, 0):
+            layout.template_popup_confirm("", text="", cancel_text='OK')
 
 
 class ExportMetricsButton(bpy.types.Operator):

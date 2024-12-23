@@ -116,7 +116,7 @@ To start testing code:
 
 3. Set environment variable **AI_ADDON_BLENDER_EXEC** as path to your Blender executable file.
 
-4. Use relevant file from **scripts** folder.
+4. Change directory to **scripts** and use relevant file.
 
 ## Packing addon
 
@@ -124,4 +124,4 @@ To pack plug-in, Blender version 4.2.0 or above is required. To make **ZIP** fil
 
 1. Set environment variable **AI_ADDON_BLENDER_EXEC** as path to your Blender executable file.
 
-2. Use relevant file from **scripts** folder.
+2. Change directory to **scripts** and use relevant file.
