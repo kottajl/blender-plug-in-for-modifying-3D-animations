@@ -11,7 +11,7 @@ type = "add-on"
 
 website = "https://github.com/kottajl/blender-plug-in-for-modifying-3D-animations"
 
-tags = ["Animation", "3D View"]
+tags = ["Animation", "3D View", "Development"]
 
 blender_version_min = "4.2.0"
 
@@ -27,13 +27,17 @@ network = "Download trained AI models"
 paths_exclude_pattern = [
   "__pycache__/",
   "/.git/",
-  "/.gitignore",
   "/*.zip",
-  "/*.bat",
-  "/*.sh",
+  "/.gitignore",
+  "__pypackages__/",
+  "*.py[cod]",
+  "*$py.class",
+  "*.so",
+  "*.exe",
+  "/.vscode",
   "/.DS_Store",
-  "/*.blend1",
   "/*.blend",
+  "/*.blend1",
   "/models/motion_inbetweening/experiments/lafan1_context_model_release/*.pth",
   "/models/motion_inbetweening/experiments/lafan1_context_model_release/*.pkl",
   "/models/motion_inbetweening/experiments/lafan1_detail_model_release/*.pth",

@@ -21,10 +21,10 @@ sys.path.remove(str(packages_path))
 class ModelInterface(GeneralInterface):
 
     '''
-    Implementation of Motion Inbetweening model.
+    Implementation of Two-stage transformer AI model.
     '''
 
-    def check_frames_range(self, start_frame, end_frame, scene_start_frame, scene_end_frame) -> tuple[bool, str]:
+    def check_frame_range(self, start_frame, end_frame, scene_start_frame, scene_end_frame) -> tuple[bool, str]:
         if start_frame < scene_start_frame + 10:  return (False, "Must be at least 10 frames before selected range.") 
         if end_frame + 2 > scene_end_frame:  return (False, "Must be at least 2 frames after selected range.") 
         return (True, "")
@@ -40,7 +40,7 @@ class ModelInterface(GeneralInterface):
     class BlenderDataSetSingle(torch.utils.data.Dataset):
         
         '''
-        Dataset for the Motion Inbetweening model.
+        Dataset for the Two-stage transformer AI model.
         '''
 
         def __init__(self, anim, window, start_frame, device, dtype=torch.float32):
@@ -217,10 +217,14 @@ class ModelInterface(GeneralInterface):
     
 
     def is_skeleton_supported(self, skeleton) -> bool:
-        return sorted(skeleton) == sorted([('Hips', None), ('LeftUpLeg', 'Hips'), ('LeftLeg', 'LeftUpLeg'), ('LeftFoot', 'LeftLeg'), ('LeftToe', 'LeftFoot'), ('RightUpLeg', 'Hips'), 
-            ('RightLeg', 'RightUpLeg'), ('RightFoot', 'RightLeg'), ('RightToe', 'RightFoot'), ('Spine', 'Hips'), ('Spine1', 'Spine'), ('Spine2', 'Spine1'), ('Neck', 'Spine2'), ('Head', 'Neck'), 
-                ('LeftShoulder', 'Spine2'), ('LeftArm', 'LeftShoulder'), ('LeftForeArm', 'LeftArm'), ('LeftHand', 'LeftForeArm'), ('RightShoulder', 'Spine2'), ('RightArm', 'RightShoulder'), 
-                    ('RightForeArm', 'RightArm'), ('RightHand', 'RightForeArm')])
+        return sorted(skeleton) == sorted([
+                ('Hips', None), ('LeftUpLeg', 'Hips'), ('LeftLeg', 'LeftUpLeg'), ('LeftFoot', 'LeftLeg'), 
+                ('LeftToe', 'LeftFoot'), ('RightUpLeg', 'Hips'), ('RightLeg', 'RightUpLeg'), ('RightFoot', 'RightLeg'), 
+                ('RightToe', 'RightFoot'), ('Spine', 'Hips'), ('Spine1', 'Spine'), ('Spine2', 'Spine1'), 
+                ('Neck', 'Spine2'), ('Head', 'Neck'), ('LeftShoulder', 'Spine2'), ('LeftArm', 'LeftShoulder'), 
+                ('LeftForeArm', 'LeftArm'), ('LeftHand', 'LeftForeArm'), ('RightShoulder', 'Spine2'), ('RightArm', 'RightShoulder'), 
+                ('RightForeArm', 'RightArm'), ('RightHand', 'RightForeArm')
+            ])
     
 
 # ModelInterface

@@ -206,10 +206,12 @@ def rotation_acc_smoothness_error(obj, start_frame: int, end_frame: int) -> floa
 # --- Helper functions
 
 def _compute_angle(q1, q2, degrees=True) -> float:
+
     '''
     Compute the angle between two quaternions.
     angle = 2 * acos( |q1 . q2| )
     '''
+    
     dot_product = abs(q1.dot(q2))
     dot_product = max(min(dot_product, 1.0), -1.0)  # to avoid NaN
 

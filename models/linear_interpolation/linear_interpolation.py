@@ -9,7 +9,7 @@ class ModelInterface(GeneralInterface):
     Simple linear interpolation (without AI).
     '''
 
-    def check_frames_range(self, start_frame, end_frame, scene_start_frame, scene_end_frame) -> tuple[bool, str]:
+    def check_frame_range(self, start_frame, end_frame, scene_start_frame, scene_end_frame) -> tuple[bool, str]:
         if start_frame <= scene_start_frame: return (False, "Must be at least 1 frame before selected range.") 
         if end_frame >= scene_end_frame: return (False, "Must be at least 1 frame after selected range.") 
         return (True, "")

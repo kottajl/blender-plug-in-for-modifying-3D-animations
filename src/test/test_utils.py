@@ -1,5 +1,4 @@
-from ..utils import convert_array_3x3matrix_to_euler_zyx, copy_object, has_missing_keyframes_between, \
-    export_dict_to_file
+from ..utils import convert_array_3x3matrix_to_euler_zyx, copy_object, has_missing_keyframes_between, export_dict_to_file
 from mathutils import Matrix
 import numpy as np
 import bpy

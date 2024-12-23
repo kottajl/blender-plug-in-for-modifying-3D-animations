@@ -13,7 +13,6 @@ class DecoratedBone:
     Modified version of the Bone class from the BVH importer.
     '''
 
-
     __slots__ = (
         # Bone name, used as key in many places.
         "name",
@@ -45,14 +44,6 @@ class DecoratedBone:
         "rot_order_str_reverse",
     )
 
-    # _eul_order_lookup = {
-    #     'XYZ': (0, 1, 2),
-    #     'XZY': (0, 2, 1),
-    #     'YXZ': (1, 0, 2),
-    #     'YZX': ,
-    #     'ZXY': (2, 0, 1),
-    #     'ZYX': (2, 1, 0),
-    # }
 
     def __init__(
         self, 
@@ -67,7 +58,6 @@ class DecoratedBone:
         self.rot_order_str = "YZX"
         self.rot_order_str_reverse = self.rot_order_str[::-1] # XZY
 
-        #self.rot_order = DecoratedBone._eul_order_lookup[self.rot_order_str]
         self.rot_order = (1, 2, 0) # YZX
 
         self.pose_mat = self.pose_bone.matrix
@@ -81,9 +71,8 @@ class DecoratedBone:
         self.rest_local_imat = self.rest_local_mat.inverted()
 
         self.parent = None
-        # self.prev_euler = Euler((0.0, 0.0, 0.0), self.rot_order_str_reverse)
         self.prev_euler = Euler((0.0, 0.0, 0.0), "XZY") # reverse order
-        #self.skip_position = ((self.rest_bone.use_connect or root_transform_only) and self.rest_bone.parent)
+
 
     def update_posedata(self):
         self.pose_mat = self.pose_bone.matrix
@@ -91,8 +80,9 @@ class DecoratedBone:
 
 
 def get_object_skeleton(obj):
+
     '''
-    Gets skeleton structure from the Blender object
+    Gets skeleton structure from the Blender object.
     '''
     
     skeleton = []
@@ -106,7 +96,9 @@ def get_object_skeleton(obj):
 
     return skeleton
 
+
 def get_anim_data(obj):
+
     '''
     Gets animation data from the Blender object.
     '''
@@ -230,6 +222,7 @@ def apply_transforms(
     true_inferred_rot,
     offset: int
 ) -> None:
+    
     '''
     Apply transforms to the object.
     '''

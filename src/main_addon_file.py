@@ -284,7 +284,7 @@ def generate_anim(
         return {"CANCELLED"}
     
     # check if frames are correct in model - function from interface
-    b, s = interface.check_frames_range(start_frame, end_frame, scene_start_frame, scene_end_frame)
+    b, s = interface.check_frame_range(start_frame, end_frame, scene_start_frame, scene_end_frame)
     if b == False: 
         show_info("ERROR", f"Selected frame range is invalid for model, {s}")
         return {"CANCELLED"} 

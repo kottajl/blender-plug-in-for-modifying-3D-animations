@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 class GeneralInterface(ABC):
 
     @abstractmethod
-    def check_frames_range(self, start_frame: int, end_frame: int, scene_start_frame: int, scene_end_frame: int) -> tuple[bool, str]:
+    def check_frame_range(self, start_frame: int, end_frame: int, scene_start_frame: int, scene_end_frame: int) -> tuple[bool, str]:
 
         '''
         Check if frame range is valid to generate propely frames in current model, returns (True, "") if yes,
