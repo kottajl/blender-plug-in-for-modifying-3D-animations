@@ -15,14 +15,14 @@ def cleanup():
 
 
 def test_generate_anim_when_no_object_selected():
-    assert maf.generate_anim(1, 100, MagicMock(), True, False, False) == {'CANCELLED1'}
+    assert maf.generate_anim(1, 100, MagicMock(), True, False, False) == {'CANCELLED'}
 
 
 def test_generate_anim_when_selected_object_not_armature():
     obj = bpy.data.objects.new("object1", bpy.data.meshes.new('mesh1'))
     bpy.context.collection.objects.link(obj)
     obj.select_set(True)
-    assert maf.generate_anim(1, 100, MagicMock(), True, False, False) == {'CANCELLED2'}
+    assert maf.generate_anim(1, 100, MagicMock(), True, False, False) == {'CANCELLED'}
 
 
 def test_generate_anim_when_more_than_one_object_selected():
@@ -30,25 +30,25 @@ def test_generate_anim_when_more_than_one_object_selected():
     obj.select_set(True)
     obj2, _ = prepare_object(2)
     obj2.select_set(True)
-    assert maf.generate_anim(1, 100, MagicMock(), True, False, False) == {'CANCELLED3'}
+    assert maf.generate_anim(1, 100, MagicMock(), True, False, False) == {'CANCELLED'}
 
 
 def test_generate_anim_when_wrong_start_frame():
     obj, _ = prepare_object(1)
     obj.select_set(True)
-    assert maf.generate_anim(-1, 100, MagicMock(), True, False, False) == {'CANCELLED4'}
+    assert maf.generate_anim(-1, 100, MagicMock(), True, False, False) == {'CANCELLED'}
 
 
 def test_generate_anim_when_wrong_end_frame():
     obj, _ = prepare_object(1)
     obj.select_set(True)
-    assert maf.generate_anim(1, 3000, MagicMock(), True, False, False) == {'CANCELLED5'}
+    assert maf.generate_anim(1, 3000, MagicMock(), True, False, False) == {'CANCELLED'}
 
 
 def test_generate_anim_when_wrong_frame_range():
     obj, _ = prepare_object(1)
     obj.select_set(True)
-    assert maf.generate_anim(1, 1, MagicMock(), True, False, False) == {'CANCELLED6'}
+    assert maf.generate_anim(1, 1, MagicMock(), True, False, False) == {'CANCELLED'}
 
 
 def test_generate_anim_when_interface_wrong_frame_range():
@@ -56,25 +56,30 @@ def test_generate_anim_when_interface_wrong_frame_range():
     obj.select_set(True)
     interface = MagicMock()
     interface.check_frame_range.return_value = False, 0
-    assert maf.generate_anim(1, 100, interface, True, False, False) == {'CANCELLED7'}
+    assert maf.generate_anim(1, 100, interface, True, False, False) == {'CANCELLED'}
+    interface.check_frame_range.assert_called_once_with(1, 100, 1, 250)
 
 
 def test_generate_anim_when_interface_not_supported_skeleton():
-    obj, _ = prepare_object(1)
+    obj, _ = prepare_object(1, True)
     obj.select_set(True)
     interface = MagicMock()
     interface.check_frame_range.return_value = True, 0
     interface.is_skeleton_supported.return_value = False
-    assert maf.generate_anim(1, 100, interface, True, False, False) == {'CANCELLED8'}
+    assert maf.generate_anim(1, 100, interface, True, False, False) == {'CANCELLED'}
+    interface.check_frame_range.assert_called_once_with(1, 100, 1, 250)
+    interface.is_skeleton_supported.assert_called_once_with([("Bone1", None)])
 
 
 def test_generate_anim_when_error_loading_anim_data():
-    obj, _ = prepare_object(1)
+    obj, _ = prepare_object(1, True)
     obj.select_set(True)
     interface = MagicMock()
     interface.check_frame_range.return_value = True, 0
     interface.is_skeleton_supported.return_value = True
-    assert maf.generate_anim(1, 100, interface, True, False, False) == {'CANCELLED9'}
+    assert maf.generate_anim(1, 100, interface, True, False, False) == {'CANCELLED'}
+    interface.check_frame_range.assert_called_once_with(1, 100, 1, 250)
+    interface.is_skeleton_supported.assert_called_once_with([("Bone1", None)])
 
 
 def test_generate_anim_when_error_using_model():
@@ -83,7 +88,9 @@ def test_generate_anim_when_error_using_model():
     interface = MagicMock()
     interface.check_frame_range.return_value = True, 0
     interface.is_skeleton_supported.return_value = True
-    assert maf.generate_anim(1, 100, interface, True, False, False) == {'CANCELLED10'}
+    assert maf.generate_anim(1, 100, interface, True, False, False) == {'CANCELLED'}
+    interface.check_frame_range.assert_called_once_with(1, 100, 1, 250)
+    interface.is_skeleton_supported.assert_called_once_with([("Bone1", None)])
 
 
 def test_generate_anim_when_error_applying_animation():
@@ -93,7 +100,10 @@ def test_generate_anim_when_error_applying_animation():
     interface.check_frame_range.return_value = True, 0
     interface.is_skeleton_supported.return_value = True
     interface.infer_anim.return_value = [[np.array([None, 30, 40])]], [[np.array([180, 240, 0])]]
-    assert maf.generate_anim(1, 100, interface, True, False, False) == {'CANCELLED13'}
+    assert maf.generate_anim(1, 100, interface, True, False, False) == {'CANCELLED'}
+    interface.check_frame_range.assert_called_once_with(1, 100, 1, 250)
+    interface.is_skeleton_supported.assert_called_once_with([("Bone1", None)])
+    interface.infer_anim.assert_called_once()
 
 
 def test_generate_anim_when_correct():
@@ -104,6 +114,9 @@ def test_generate_anim_when_correct():
     interface.is_skeleton_supported.return_value = True
     interface.infer_anim.return_value = [[np.array([20, 30, 40])]], [[np.array([180, 240, 0])]]
     assert maf.generate_anim(1, 100, interface, True, False, False) == {'FINISHED'}
+    interface.check_frame_range.assert_called_once_with(1, 100, 1, 250)
+    interface.is_skeleton_supported.assert_called_once_with([("Bone1", None)])
+    interface.infer_anim.assert_called_once()
 
 
 def test_format_bvh_name():
