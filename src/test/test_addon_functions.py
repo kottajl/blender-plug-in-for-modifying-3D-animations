@@ -3,6 +3,13 @@ import numpy as np
 from .types import Bone, Object, Armature, Pose
 from mathutils import Matrix, Vector
 import bpy
+import pytest
+
+
+@pytest.fixture(autouse=True)
+def cleanup():
+    bpy.ops.wm.read_homefile(app_template="")
+    bpy.ops.object.select_all(action='DESELECT')
 
 
 def test_should_return_skeleton():

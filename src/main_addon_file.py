@@ -243,12 +243,13 @@ sys.path.remove(modules_path)
 # --- Main function
 
 def generate_anim(
-    start_frame: int, 
-    end_frame: int, 
-    interface: GeneralInterface,
-    create_new: bool,
-    calculate_metrics: bool,
-    **kwargs: dict
+        start_frame: int,
+        end_frame: int,
+        interface: GeneralInterface,
+        create_new: bool,
+        calculate_metrics: bool,
+        show_popups: bool,
+        **kwargs: dict
 ) -> set[str]:
     
     '''
@@ -264,45 +265,54 @@ def generate_anim(
 
     # check simple things
     if obj is None or len(context.selected_objects) == 0:
-        show_info("ERROR", "No object selected.")
+        if show_popups:
+            show_info("ERROR", "No object selected.")
         return {"CANCELLED"} 
 
     if obj.type != 'ARMATURE':
-        show_info("ERROR", "Selected object must be armature.")
+        if show_popups:
+            show_info("ERROR", "Selected object must be armature.")
         return {"CANCELLED"} 
     
-    if len(context.selected_objects) > 1: 
-        show_info("ERROR", "Only 1 object can be selected.")
+    if len(context.selected_objects) > 1:
+        if show_popups:
+            show_info("ERROR", "Only 1 object can be selected.")
         return {"CANCELLED"}  
 
-    if start_frame < scene_start_frame: 
-        show_info("ERROR", "Wrong start frame selected.")
+    if start_frame < scene_start_frame:
+        if show_popups:
+            show_info("ERROR", "Wrong start frame selected.")
         return {"CANCELLED"}
     
-    if end_frame > scene_end_frame: 
-        show_info("ERROR", "Wrong end frame selected.")
+    if end_frame > scene_end_frame:
+        if show_popups:
+            show_info("ERROR", "Wrong end frame selected.")
         return {"CANCELLED"}
     
-    if start_frame + 1 >= end_frame: 
-        show_info("ERROR", "Must be at least 1 frame in-between.")
+    if start_frame + 1 >= end_frame:
+        if show_popups:
+            show_info("ERROR", "Must be at least 1 frame in-between.")
         return {"CANCELLED"}
     
     # check if frames are correct in model - function from interface
     b, s = interface.check_frame_range(start_frame, end_frame, scene_start_frame, scene_end_frame)
-    if b == False: 
-        show_info("ERROR", f"Selected frame range is invalid for model, {s}")
+    if not b:
+        if show_popups:
+            show_info("ERROR", f"Selected frame range is invalid for model, {s}")
         return {"CANCELLED"} 
     
     # check if skeleton is supported by model
     if not interface.is_skeleton_supported(get_object_skeleton(obj)):
-        show_info("ERROR", "Skeleton is not supported by model")
+        if show_popups:
+            show_info("ERROR", "Skeleton is not supported by model")
         return {"CANCELLED"} 
     
     # load anim data
     try: 
         anim = get_anim_data(obj)
-    except Exception as e: 
-        show_info("ERROR", f"Error with loading animation data, {e}.")
+    except Exception as e:
+        if show_popups:
+            show_info("ERROR", f"Error with loading animation data, {e}.")
         return {"CANCELLED"} 
 
     # infer results from ai model - function from interface
@@ -310,23 +320,26 @@ def generate_anim(
         print("--- Start of model infer anim logs")
         inferred_pos, inferred_rot = interface.infer_anim(anim, start_frame, end_frame, **kwargs)
         print("--- End of model infer anim logs")
-    except Exception as e: 
-        show_info("ERROR", f"Error with using model, {e}.")
+    except Exception as e:
+        if show_popups:
+            show_info("ERROR", f"Error with using model, {e}.")
         return {"CANCELLED"} 
     
     # copy object
     try:
         if create_new: new_obj = copy_object(obj, context)
         else: new_obj = obj
-    except Exception as e: 
-        show_info("ERROR", f"Error while copying object, {e}.")
+    except Exception as e:
+        if show_popups:
+            show_info("ERROR", f"Error while copying object, {e}.")
         return {"CANCELLED"} 
 
-    # convert original rotation to ZYX Euler angles
+        # convert original rotation to ZYX Euler angles
     try:
         original_rot = convert_array_3x3matrix_to_euler_zyx(anim["rotations"])
-    except Exception as e: 
-        show_info("ERROR", f"Error with animation data, {e}.")
+    except Exception as e:
+        if show_popups:
+            show_info("ERROR", f"Error with animation data, {e}.")
         return {"CANCELLED"} 
 
     # apply new transforms
@@ -339,8 +352,9 @@ def generate_anim(
             true_inferred_rot=inferred_rot, 
             offset=start_frame 
         )
-    except Exception as e: 
-        show_info("ERROR", f"Error while applying new animation to object, {e}.")
+    except Exception as e:
+        if show_popups:
+            show_info("ERROR", f"Error while applying new animation to object, {e}.")
         return {"CANCELLED"} 
     
     # calculate metrics
@@ -572,7 +586,7 @@ def process_generation():
             if t == torch.device: kwargs[n] = selected_device
             else: kwargs[n] = getattr(mt, n) 
 
-    return generate_anim(mt.start_frame, mt.end_frame, selected_model, mt.create_new, mt.calculate_metrics, **kwargs)   
+    return generate_anim(mt.start_frame, mt.end_frame, selected_model, mt.create_new, mt.calculate_metrics, True, **kwargs)
 
      
 class GenerationButtonOperator(bpy.types.Operator):
@@ -697,7 +711,7 @@ class InstallLibrariesOperator(bpy.types.Operator, bpy_extras.io_utils.ImportHel
             print("--- Successfully installed all libraries")
 
         return {"FINISHED"}
-    
+
 
 class DeleteModelButtonOperator(bpy.types.Operator):
     bl_idname = "plugin.delete_model_button"

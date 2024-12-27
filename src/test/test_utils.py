@@ -1,8 +1,14 @@
 from ..utils import convert_array_3x3matrix_to_euler_zyx, copy_object, has_missing_keyframes_between, export_dict_to_file
 from mathutils import Matrix
+import pytest
 import numpy as np
 import bpy
 import os
+
+@pytest.fixture(autouse=True)
+def cleanup():
+    bpy.ops.wm.read_homefile(app_template="")
+    bpy.ops.object.select_all(action='DESELECT')
 
 
 def test_convert_array_3x3matrix_to_euler_zyx():
