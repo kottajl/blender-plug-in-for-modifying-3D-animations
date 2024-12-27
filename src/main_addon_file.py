@@ -111,7 +111,7 @@ def handle_torch_installation():
                     cuda_version = cuda_version_line.split(",")[1].split()[1]  
                     cuda_version = str(cuda_version)
                     cuda_version = cuda_version[0] + cuda_version[1] + cuda_version[3]
-                    if version in ["118", "121"]: 
+                    if cuda_version in ["118", "121"]:
                         pip_parts.append('--index-url')
                         url = "https://download.pytorch.org/whl/cu" + cuda_version
                         pip_parts.append(url)
