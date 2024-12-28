@@ -2,7 +2,7 @@
 
 if defined AI_ADDON_BLENDER_EXEC (
     cd ..
-    %AI_ADDON_BLENDER_EXEC% --command extension build
+    "%AI_ADDON_BLENDER_EXEC%" --command extension build
     echo Packaging done.
     cd scripts
 ) else (
