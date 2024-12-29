@@ -125,3 +125,23 @@ To pack plug-in, Blender version 4.2.0 or above is required. To make **ZIP** fil
 1. Set environment variable **AI_ADDON_BLENDER_EXEC** as path to your Blender executable file.
 
 2. Change directory to **scripts** and use relevant file.
+
+## Tested platforms
+
+Extension was tested on following platforms:
+
+- Arch Linux 2024.12.01, AMD Ryzen 7 4800H, NVIDIA GeForce GTX 1650
+
+- Fedora Linux 40 (Workstation Edition) , Intel® Core™ i5-11300H, NVIDIA GeForce GTX 1650
+
+- Ubuntu 24.04.1 LTS on Windows 10 x86_64 (WSL2),  Intel® Core™ i5-12600KF, NVIDIA GeForce RTX 3060 Ti
+
+- macOS Sonoma 14.4, Apple M1 CPU and GPU
+
+- Windows 10 Education 10.0.19045, Intel® Core™ i5-12600KF, NVIDIA GeForce RTX 3060 Ti
+
+- Windows 10 Pro 10.0.19045, Intel® Core™ i5-11300H, NVIDIA GeForce GTX 1650
+
+- Windows 10 Pro 10.0.19045, Intel® Core™ i5-6400, NVIDIA GeForce GTX 1070 Ti
+
+- Windows 10 Pro 10.0.19045, AMD Ryzen 5 5600X, NVIDIA GeForce RTX 3070
