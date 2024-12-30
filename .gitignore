@@ -26,3 +26,6 @@ __pypackages__/
 /models/motion_inbetweening/datasets/lafan1/*.bvh
 /models/motion_inbetweening/datasets/lafan1/*.pkl
 /models/motion_inbetweening/output/*.bvh
+
+# Zip file for release
+*.zip

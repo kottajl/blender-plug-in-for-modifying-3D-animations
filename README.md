@@ -8,7 +8,7 @@ It is advised to open Blender from **terminal**, at least during installation to
 
 To install the plug-in:
 
-1. Download **ZIP** file from this repository.
+1. Download ZIP file [**ai_animation_bridge-1.X.Y.zip**](https://github.com/kottajl/blender-plug-in-for-modifying-3D-animations/releases)  from the newest release.
 
 2. Open **Blender**.
 
