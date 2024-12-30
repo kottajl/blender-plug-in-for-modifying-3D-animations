@@ -148,5 +148,5 @@ Extension was tested on following platforms:
 
 ## License
 
-GNU General Public License v3.0 or later 
+GNU General Public License v3.0
 https://www.gnu.org/licenses/gpl-3.0.html
