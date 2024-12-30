@@ -145,3 +145,8 @@ Extension was tested on following platforms:
 - Windows 10 Pro 10.0.19045, Intel® Core™ i5-6400, NVIDIA GeForce GTX 1070 Ti
 
 - Windows 10 Pro 10.0.19045, AMD Ryzen 5 5600X, NVIDIA GeForce RTX 3070
+
+## License
+
+GNU General Public License v3.0 or later 
+https://www.gnu.org/licenses/gpl-3.0.html

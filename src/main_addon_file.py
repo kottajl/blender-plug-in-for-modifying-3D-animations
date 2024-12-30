@@ -20,6 +20,14 @@ import pathlib
 import os
 import json
 import platform 
+import site
+
+os_name = platform.system()
+
+if os_name != "Windows":
+    user_site_packages = site.getusersitepackages()
+    if os.path.exists(user_site_packages) and user_site_packages not in sys.path:
+        sys.path.append(user_site_packages) 
 
 if bpy is None or bpy.context is None or hasattr(bpy.context, "space_data") == False or bpy.context.space_data is None:
     # If installing addon from ZIP file
@@ -31,7 +39,6 @@ else:
 modules_path = str(directory_path.parent.resolve())
 if modules_path not in sys.path: sys.path.append(modules_path)
 
-os_name = platform.system()
 req_path = str(directory_path) + str(os.sep) + "config" + str(os.sep) + "addon_requirements.txt"
 
 # Defining target for pip installation (for Windows systems only)
@@ -683,7 +690,7 @@ class InstallLibrariesOperator(bpy.types.Operator, bpy_extras.io_utils.ImportHel
                     part.replace("==", ">=") if "==" in part else part for part in x.split()
                 ]
 
-                lib_name = pip_parts[6]
+                lib_name = pip_parts[4]
                 if '>=' in lib_name: lib_name = lib_name.split('>=')[0]
 
                 pip_parts.extend(pip_target_sufix)
