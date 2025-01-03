@@ -146,7 +146,3 @@ Extension was tested on following platforms:
 
 - Windows 10 Pro 10.0.19045, AMD Ryzen 5 5600X, NVIDIA GeForce RTX 3070
 
-## License
-
-GNU General Public License v3.0
-https://www.gnu.org/licenses/gpl-3.0.html
