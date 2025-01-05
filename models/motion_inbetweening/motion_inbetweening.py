@@ -109,7 +109,7 @@ class ModelInterface(GeneralInterface):
     def infer_anim(self, anim_data, start_frame, end_frame, **kwargs):
         # Model arguments
         device = kwargs.get("Device", "cpu") 
-        post_processing = kwargs.get("Post processing", False)
+        post_processing = kwargs.get("Post-processing", False)
         offset = start_frame - 10
         trans = end_frame - start_frame + 1
         
