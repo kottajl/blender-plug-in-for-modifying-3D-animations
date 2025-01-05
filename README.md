@@ -132,7 +132,7 @@ Extension was tested on following platforms:
 
 - Arch Linux 2024.12.01, AMD Ryzen 7 4800H, NVIDIA GeForce GTX 1650
 
-- Fedora Linux 40 (Workstation Edition) , Intel® Core™ i5-11300H, NVIDIA GeForce GTX 1650
+- Fedora Linux 40 (Workstation Edition), Intel® Core™ i5-11300H, NVIDIA GeForce GTX 1650
 
 - Ubuntu 24.04.1 LTS on Windows 10 x86_64 (WSL2),  Intel® Core™ i5-12600KF, NVIDIA GeForce RTX 3060 Ti
 

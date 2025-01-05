@@ -33,7 +33,7 @@ class ModelInterface(GeneralInterface):
     def get_additional_infer_params(self) -> list[tuple[type, str, str]]:
         return [
                 (torch.device, "Device", "Select device to compute on"),
-                (bool, "Post processing", "Apply post processing on inferred data")         
+                (bool, "Post-processing", "Apply post-processing on inferred data")         
             ]
     
 
