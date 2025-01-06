@@ -92,7 +92,7 @@ First generation can take a little longer (max 1 minute). To generate frames:
 
 ## Project structure
 
-- **/interface** -> contains the main interface that models must implement
+- **/interface** -> contains the main interface that models must implement, see **Interface documentation.pdf** if you want to create your own implementation
 
 - **/lib** -> contains binary files required for the plugin
 
