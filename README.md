@@ -1,5 +1,12 @@
 # Blender software plug-in for modifying 3D character models’ animations
 
+## General information
+This extension is designed to simplify the use of external AI models to fill holes in animation (based on boundary keyframes of the selected area). 
+
+We are giving option to developers of AI models to provide a file with the class implementing the simple interface we specified (in the [**general_interface.py**](https://github.com/kottajl/blender-plug-in-for-modifying-3D-animations/blob/main/interface/general_interface.py)). The documentation that can be helpful is located in file [**Interface documentation.pdf**](https://github.com/kottajl/blender-plug-in-for-modifying-3D-animations/blob/main/Interface%20documentation.pdf). 
+
+Two-stage transformer AI model that is located in [**models/motion_inbetweening**](https://github.com/kottajl/blender-plug-in-for-modifying-3D-animations/tree/main/models/motion_inbetweening) is the example external model (source code: https://github.com/victorqin/motion_inbetweening). Interface implementation is written by us.
+
 ## Installation
 
 It is advised to open Blender from **terminal**, at least during installation to see progress (Blender appears not responding). To do this simply put path to your Blender excecutable in console and press **ENTER**.
