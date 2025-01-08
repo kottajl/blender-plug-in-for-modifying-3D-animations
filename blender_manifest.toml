@@ -3,7 +3,7 @@
 schema_version = "1.0.0"
 
 id = "ai_animation_bridge"
-version = "1.0.1"
+version = "1.0.2"
 name = "AI Animation Bridge"
 tagline = "Generate in-between animations using AI models"
 maintainer = "Pluginowcy AGH <pluginowcy_agh@protonmail.com>"
