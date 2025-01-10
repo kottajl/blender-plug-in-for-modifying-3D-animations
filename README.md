@@ -1,4 +1,4 @@
-# Blender software plug-in for modifying 3D character models’ animations
+# Plugin for Blender software to modify animation of 3D character models
 
 ## General information
 This extension is designed to simplify the use of external AI models to fill holes in animation (based on boundary keyframes of the selected area). 
